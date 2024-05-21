@@ -15,6 +15,7 @@ p10k configure
 
 > For `p10k configure` command choose whatever works for you. Mostly shell customization.
 
+**After this replace the `.zshrc` and `alias.zsh` files with the ones in this repo**
 
 ### iTerm > Settings > Profiles > General
 * Title - Session Name (only this)
