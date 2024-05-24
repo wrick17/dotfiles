@@ -59,11 +59,6 @@ source ~/powerlevel10k/powerlevel10k.zsh-theme
 # To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.
 [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
 
-eval "$(fzf --zsh)"
-eval "$(zoxide init zsh)"
-eval "$(fnm env --use-on-cd)"
-eval $(thefuck --alias)
-
 export FZF_DEFAULT_COMMAND="fd --hidden --strip-cwd-prefix --exclude .git"
 export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
 export FZF_ALT_C_COMMAND="fd --type=d --hidden --strip-cwd-prefix --exclude .git"
@@ -103,6 +98,14 @@ zstyle ':completion:*' list-colors "${(s.:.)LS_COLORS}"
 zstyle ':completion:*' menu no
 zstyle ':fzf-tab:complete:z:*' fzf-preview 'eza -1 --color=always $realpath'
 zstyle ':fzf-tab:complete:code:*' fzf-preview 'eza --tree --level=2 --color=always $realpath'
+
+export PATH=/opt/homebrew/bin:$PATH
+typeset -g POWERLEVEL9K_INSTANT_PROMPT=quiet
+
+eval "$(fzf --zsh)"
+eval "$(zoxide init zsh)"
+eval "$(fnm env --use-on-cd)"
+eval $(thefuck --alias)
 
 source "${HOME}/.alias.zsh"
 source "${HOME}/.secrets.zsh"
