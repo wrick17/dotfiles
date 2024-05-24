@@ -1,3 +1,5 @@
 # Files that should not be simlinked to the home folder
 
 .DS_Store
+.git
+README.md
