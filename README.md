@@ -2,7 +2,11 @@
 
 > This hosts the dotfiles and aliases for an insanely fast and rich Terminal experience.
 
+> NOTE: All the following things needs to be done in the home folder. It won't work anywhere else.
+
 ```bash
+cd ~
+
 touch ~/.hushlogin
 touch ~/.secrets.zsh
 
@@ -12,6 +16,7 @@ cd ~
 git clone git@github.com:wrick17/dotfiles.git
 cd dotfiles
 stow .
+cd ~
 
 git clone --depth=1 https://github.com/romkatv/powerlevel10k.git ~/powerlevel10k
 ```
