@@ -1,6 +1,6 @@
 # Insanely Fast ZSH
 
-> This hosts the dotfiles and aliases for an insanely fast and rich Terminal experience.
+This hosts the dotfiles and aliases for an insanely fast and rich Terminal experience.
 
 > NOTE: All the following things needs to be done in the home folder. It won't work anywhere else.
 
