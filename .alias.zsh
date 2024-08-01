@@ -8,27 +8,25 @@ alias x="exit"
 alias gst="git status"
 alias ga="git add"
 alias gc="git commit -m"
-function pull(){
+function pull() {
 	branch="$(git rev-parse --abbrev-ref HEAD)"
-	if [ $# -eq 0 ]
-	then
+	if [ $# -eq 0 ]; then
 		git pull origin $branch --rebase
 	else
 		git pull origin $1 --rebase
 	fi
 }
 alias ggpu=pull
-function pullMerge(){
+function pullMerge() {
 	branch="$(git rev-parse --abbrev-ref HEAD)"
-	if [ $# -eq 0 ]
-	then
+	if [ $# -eq 0 ]; then
 		git pull origin $branch
 	else
 		git pull origin $1
 	fi
 }
 alias ggpum=pullMerge
-function gpi(){
+function gpi() {
 	branch=$(git symbolic-ref --short HEAD)
 	remote=$(git config --get remote.origin.url)
 	removeDotGit="${remote/.git/}"
@@ -36,7 +34,28 @@ function gpi(){
 	url=${removeColon/git\@/https:\/\/}
 	open "${url}/issues/new?title=deploy%20${branch}"
 }
-function gpr(){
+function _gpr_usage() {
+	echo "
+Usage: gpr <[options]>
+
+Options:
+	-j   --jira           Jira ticket id
+	-d   --description    Description
+	-t   --title          Title
+	-h   --help           Help
+
+NOTE: You have to provide description and either jira or title.
+
+Example:
+
+# Create a PR from master to dev branch
+gpr master dev -t \"master dev sync\" -d \"rebase dev with master\"
+
+# Create a PR from dev to current branch to dev branch with proper title and description accroding to PR template
+gpr dev -j \"PRDS-1234\" -d \"fix a big bug\"
+"
+}
+function gpr() {
 	branch=$(git symbolic-ref --short HEAD)
 	remote=$(git config --get remote.origin.url)
 	removeDotGit="${remote/.git/}"
@@ -48,44 +67,61 @@ function gpr(){
 		secondArg="dev"
 	fi
 	count=0
-	title=""
-	description=""
+
+	if [ $# -eq 0 ] ; then
+		_gpr_usage
+		return 0
+	fi
+
 	while (( $# )); do
     case $1 in
-      -t=*|--title=*)  				title="${1#*=}" ;;
-      -d=*|--description=*)  	description="${1#*=}" ;;
-      *)                  		if [ $count -eq 1 ]; then branch=$secondArg; target=$1; else target=$1; fi ;;
-    esac
+		-j | --jira) 
+			shift
+			ticket="${1}" ;;
+		-d | --description) 
+			shift
+			description="${1}" ;;
+		-t | --title) 
+			shift
+			title="${1}" ;;
+		-h | --help) _gpr_usage ;;
+		*) 
+			shift ;;
+		esac
 		count=$((count+1))
-    shift
-  done
+	done
 
 	if [ $count -eq 0 ]; then
-		base="${url}/compare/${branch}";
+		base="${branch}"
 	else
-		base="${url}/compare/${target}...${branch}";
-	fi
-	temp="${base}?expand=1";
-
-	if [ $title ] && [ $description ]; then
-		temp="${temp}&title=${title}&body=${description}";
-	elif [ $title ]; then
-		temp="${temp}&title=${title}";
-	elif [ $description ]; then
-		temp="${temp}&body=${description}";
+		base="${target}"
+		head="${branch}"
 	fi
 
-	open "${temp}";
+	body="${description}"
 
-	unset target;
-	unset count;
-	unset title;
-	unset description;
-	unset secondArg;
-	unset final;
+	if [ $title ] || [ $ticket ]; then
+		if [ $ticket ]; then
+			title="${ticket} ${description}"
+			body="### Description
+Jira Id: ${ticket} 
+Link to Jira Ticket: https://sequoiacg.atlassian.net/browse/${ticket} 
+Remarks: ${description}"
+		fi
+		gh pr create --base "${base}" --head "${head}" --title "${title}" --body "${body}"
+	fi
+	
+	unset target
+	unset count
+	unset title
+	unset ticket
+	unset body
+	unset description
+	unset secondArg
+	unset final
 }
-alias gpi=gpi
 alias gpr=gpr
+alias gpi=gpi
 alias gp="git push origin HEAD"
 alias n="npm"
 alias ni="npm install"
@@ -129,11 +165,22 @@ alias nvm="fnm"
 alias ymfe="yarn unlink @sequoiaconsulting/mfe-config-essentials ; yarn ; yarn link @sequoiaconsulting/mfe-config-essentials"
 alias amfe="agg unlink @sequoiaconsulting/mfe-config-essentials ; agg ; agg link @sequoiaconsulting/mfe-config-essentials"
 
+function yal() {
+	yarn unlink @sequoiaconsulting/mfe-config-essentials
+	yarn add $1
+	yarn link @sequoiaconsulting/mfe-config-essentials
+}
+alias yal="yal"
+
 alias f="fuck"
+
+alias cr="cargo run"
+alias cb="cargo build"
+alias ca="cargo add"
 
 DISABLE_AUTO_TITLE="true"
 
 precmd() {
-  # sets the tab title to current dir
-  echo -ne "\e]1;${PWD##*/}\a"
+	# sets the tab title to current dir
+	echo -ne "\e]1;${PWD##*/}\a"
 }
