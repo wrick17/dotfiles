@@ -61,6 +61,7 @@ function gpr() {
 	removeDotGit="${remote/.git/}"
 	removeColon="${removeDotGit/://}"
 	url=${removeColon/git\@/https:\/\/}
+
 	if [ $1 ]; then
 		secondArg=$1
 	else
@@ -91,6 +92,8 @@ function gpr() {
 		count=$((count+1))
 	done
 
+	target=$secondArg
+
 	if [ $count -eq 0 ]; then
 		base="${branch}"
 	else
@@ -108,6 +111,7 @@ Jira Id: ${ticket}
 Link to Jira Ticket: https://sequoiacg.atlassian.net/browse/${ticket} 
 Remarks: ${description}"
 		fi
+
 		gh pr create --base "${base}" --head "${head}" --title "${title}" --body "${body}"
 	fi
 	
@@ -119,6 +123,8 @@ Remarks: ${description}"
 	unset description
 	unset secondArg
 	unset final
+	unset base
+	unset head
 }
 alias gpr=gpr
 alias gpi=gpi
