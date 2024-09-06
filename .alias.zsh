@@ -177,6 +177,12 @@ function yal() {
 	yarn link @sequoiaconsulting/mfe-config-essentials
 }
 alias yal="yal"
+function aal() {
+	agg unlink @sequoiaconsulting/mfe-config-essentials
+	agg add $1
+	agg link @sequoiaconsulting/mfe-config-essentials
+}
+alias aal="aal"
 
 alias f="fuck"
 
