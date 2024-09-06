@@ -190,3 +190,13 @@ precmd() {
 	# sets the tab title to current dir
 	echo -ne "\e]1;${PWD##*/}\a"
 }
+
+alias b="bun"
+alias bi="bun install"
+alias br="bun run"
+alias bd="bun dev"
+alias bb="bun run build"
+alias ba="bun add"
+alias bda="bun run app:dev"
+alias bba="bun run app:build"
+alias bp="bun run preview"

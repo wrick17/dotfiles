@@ -107,6 +107,5 @@ eval "$(zoxide init zsh)"
 eval "$(fnm env --use-on-cd)"
 eval $(thefuck --alias)
 
-. "$HOME/.cargo/env"
 source "${HOME}/.alias.zsh"
 source "${HOME}/.secrets.zsh"
