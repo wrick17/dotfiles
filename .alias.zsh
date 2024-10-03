@@ -206,3 +206,5 @@ alias ba="bun add"
 alias bda="bun run app:dev"
 alias bba="bun run app:build"
 alias bp="bun run preview"
+
+alias z="zoxide"
