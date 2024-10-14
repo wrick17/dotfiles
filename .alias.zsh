@@ -5,7 +5,7 @@ alias ll="ls"
 alias cat="bat"
 alias c="clear"
 alias x="exit"
-alias gst="git status"
+alias gst="git status -s"
 alias ga="git add"
 alias gc="git commit -m"
 function pull() {

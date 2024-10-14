@@ -109,3 +109,5 @@ eval $(thefuck --alias)
 
 source "${HOME}/.alias.zsh"
 source "${HOME}/.secrets.zsh"
+
+export HOMEBREW_NO_AUTO_UPDATE=1
