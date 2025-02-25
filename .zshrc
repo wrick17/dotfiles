@@ -111,3 +111,5 @@ source "${HOME}/.alias.zsh"
 source "${HOME}/.secrets.zsh"
 
 export HOMEBREW_NO_AUTO_UPDATE=1
+# bun completions
+[ -s "/Users/pratyush.poddar/.bun/_bun" ] && source "/Users/pratyush.poddar/.bun/_bun"
