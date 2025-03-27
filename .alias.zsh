@@ -55,6 +55,54 @@ gpr master dev -t \"master dev sync\" -d \"rebase dev with master\"
 gpr dev -j \"PRDS-1234\" -d \"fix a big bug\"
 "
 }
+function gprm(){
+    branch=$(git symbolic-ref --short HEAD)
+    remote=$(git config --get remote.origin.url)
+    removeDotGit="${remote/.git/}"
+    removeColon="${removeDotGit/://}"
+    url=${removeColon/git\@/https:\/\/}
+    if [ $1 ]; then
+        secondArg=$1
+    else
+        secondArg="dev"
+    fi
+    count=0
+    title=""
+    description=""
+    while (( $# )); do
+    case $1 in
+      -t=*|--title=*)               title="${1#*=}" ;;
+      -d=*|--description=*)     description="${1#*=}" ;;
+      *)                        if [ $count -eq 1 ]; then branch=$secondArg; target=$1; else target=$1; fi ;;
+    esac
+        count=$((count+1))
+    shift
+  done
+ 
+    if [ $count -eq 0 ]; then
+        base="${url}/compare/${branch}";
+    else
+        base="${url}/compare/${target}...${branch}";
+    fi
+    temp="${base}?expand=1";
+ 
+    if [ $title ] && [ $description ]; then
+        temp="${temp}&title=${title}&body=${description}";
+    elif [ $title ]; then
+        temp="${temp}&title=${title}";
+    elif [ $description ]; then
+        temp="${temp}&body=${description}";
+    fi
+ 
+    open "${temp}";
+ 
+    unset target;
+    unset count;
+    unset title;
+    unset description;
+    unset secondArg;
+    unset final;
+}
 function gpr() {
 	branch=$(git symbolic-ref --short HEAD)
 	remote=$(git config --get remote.origin.url)
@@ -126,6 +174,7 @@ Remarks: ${description}"
 	unset base
 	unset head
 }
+alias gprm=gprm
 alias gpr=gpr
 alias gpi=gpi
 alias gp="git push origin HEAD"
@@ -212,3 +261,8 @@ dmgcreator() {
 	open "$1.dmg"
 }
 alias dmg="dmgcreator"
+
+alias p="pnpm"
+alias pi="pnpm install"
+alias pa="pnpm add"
+alias pr="pnpm run"
