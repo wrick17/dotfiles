@@ -262,7 +262,4 @@ dmgcreator() {
 }
 alias dmg="dmgcreator"
 
-alias p="pnpm"
-alias pi="pnpm install"
-alias pa="pnpm add"
-alias pr="pnpm run"
+alias p="python"
