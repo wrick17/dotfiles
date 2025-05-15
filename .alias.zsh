@@ -1,11 +1,11 @@
 alias cd="z"
-alias ls="eza --all --color=always --long --icons=always --no-time --no-user --no-permissions"
-alias lst="eza --all --color=always --long --icons=always --no-time --no-user --no-permissions --tree --level=2"
+alias ls="eza --all --color=always --long --icons=always --no-user --no-permissions"
+alias lst="eza --all --color=always --long --icons=always --no-user --no-permissions --tree --level=2"
 alias ll="ls"
 alias cat="bat -p"
 alias c="clear"
 alias x="exit"
-alias gst="git status -s"
+alias gst="git status"
 alias ga="git add"
 alias gc="git commit -m"
 function pull() {
@@ -55,53 +55,56 @@ gpr master dev -t \"master dev sync\" -d \"rebase dev with master\"
 gpr dev -j \"PRDS-1234\" -d \"fix a big bug\"
 "
 }
-function gprm(){
-    branch=$(git symbolic-ref --short HEAD)
-    remote=$(git config --get remote.origin.url)
-    removeDotGit="${remote/.git/}"
-    removeColon="${removeDotGit/://}"
-    url=${removeColon/git\@/https:\/\/}
-    if [ $1 ]; then
-        secondArg=$1
-    else
-        secondArg="dev"
-    fi
-    count=0
-    title=""
-    description=""
-    while (( $# )); do
-    case $1 in
-      -t=*|--title=*)               title="${1#*=}" ;;
-      -d=*|--description=*)     description="${1#*=}" ;;
-      *)                        if [ $count -eq 1 ]; then branch=$secondArg; target=$1; else target=$1; fi ;;
-    esac
-        count=$((count+1))
-    shift
-  done
- 
-    if [ $count -eq 0 ]; then
-        base="${url}/compare/${branch}";
-    else
-        base="${url}/compare/${target}...${branch}";
-    fi
-    temp="${base}?expand=1";
- 
-    if [ $title ] && [ $description ]; then
-        temp="${temp}&title=${title}&body=${description}";
-    elif [ $title ]; then
-        temp="${temp}&title=${title}";
-    elif [ $description ]; then
-        temp="${temp}&body=${description}";
-    fi
- 
-    open "${temp}";
- 
-    unset target;
-    unset count;
-    unset title;
-    unset description;
-    unset secondArg;
-    unset final;
+function gprm() {
+	branch=$(git symbolic-ref --short HEAD)
+	remote=$(git config --get remote.origin.url)
+	removeDotGit="${remote/.git/}"
+	removeColon="${removeDotGit/://}"
+	url=${removeColon/git\@/https:\/\/}
+	if [ $1 ]; then
+		secondArg=$1
+	else
+		secondArg="dev"
+	fi
+	count=0
+	title=""
+	description=""
+	while (($#)); do
+		case $1 in
+		-t=* | --title=*) title="${1#*=}" ;;
+		-d=* | --description=*) description="${1#*=}" ;;
+		*) if [ $count -eq 1 ]; then
+			branch=$secondArg
+			target=$1
+		else target=$1; fi ;;
+		esac
+		count=$((count + 1))
+		shift
+	done
+
+	if [ $count -eq 0 ]; then
+		base="${url}/compare/${branch}"
+	else
+		base="${url}/compare/${target}...${branch}"
+	fi
+	temp="${base}?expand=1"
+
+	if [ $title ] && [ $description ]; then
+		temp="${temp}&title=${title}&body=${description}"
+	elif [ $title ]; then
+		temp="${temp}&title=${title}"
+	elif [ $description ]; then
+		temp="${temp}&body=${description}"
+	fi
+
+	open "${temp}"
+
+	unset target
+	unset count
+	unset title
+	unset description
+	unset secondArg
+	unset final
 }
 function gpr() {
 	branch=$(git symbolic-ref --short HEAD)
@@ -117,27 +120,31 @@ function gpr() {
 	fi
 	count=0
 
-	if [ $# -eq 0 ] ; then
+	if [ $# -eq 0 ]; then
 		_gpr_usage
 		return 0
 	fi
 
-	while (( $# )); do
-    case $1 in
-		-j | --jira) 
+	while (($#)); do
+		case $1 in
+		-j | --jira)
 			shift
-			ticket="${1}" ;;
-		-d | --description) 
+			ticket="${1}"
+			;;
+		-d | --description)
 			shift
-			description="${1}" ;;
-		-t | --title) 
+			description="${1}"
+			;;
+		-t | --title)
 			shift
-			title="${1}" ;;
+			title="${1}"
+			;;
 		-h | --help) _gpr_usage ;;
-		*) 
-			shift ;;
+		*)
+			shift
+			;;
 		esac
-		count=$((count+1))
+		count=$((count + 1))
 	done
 
 	target=$secondArg
@@ -162,7 +169,7 @@ Remarks: ${description}"
 
 		gh pr create --base "${base}" --head "${head}" --title "${title}" --body "${body}"
 	fi
-	
+
 	unset target
 	unset count
 	unset title
@@ -263,3 +270,5 @@ dmgcreator() {
 alias dmg="dmgcreator"
 
 alias p="python"
+
+alias msedge="/Applications/Microsoft\ Edge.app/Contents/MacOS/Microsoft\ Edge"
