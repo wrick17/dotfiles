@@ -8,6 +8,7 @@ window-padding-balance = true
 window-save-state = always
 macos-titlebar-style = native
 window-colorspace = "display-p3"
+adjust-cursor-thickness = 5
 
 window-vsync = true
 
@@ -18,5 +19,8 @@ keybind = cmd+shift+down=goto_split:bottom
 keybind = cmd+shift+up=goto_split:top
 keybind = cmd+shift+left=goto_split:left
 keybind = cmd+shift+right=goto_split:right
+
+keybind = shift+right=adjust_selection:right
+keybind = shift+left=adjust_selection:left
 
 unfocused-split-opacity = 0.95 
