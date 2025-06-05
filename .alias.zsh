@@ -193,7 +193,7 @@ alias nb="npm run build"
 alias nr="npm run"
 alias g="git"
 alias gbc="git symbolic-ref --short HEAD"
-alias gs="git stash"
+alias gs="git stash -u"
 alias gsp="git stash pop"
 alias gb="git branch"
 alias gbc="git rev-parse --abbrev-ref HEAD && git rev-parse --abbrev-ref HEAD | pbcopy"
@@ -254,6 +254,7 @@ precmd() {
 }
 
 alias b="bun"
+alias bs="bun start"
 alias bi="bun install"
 alias br="bun run"
 alias bd="bun dev"

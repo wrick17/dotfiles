@@ -1,4 +1,4 @@
-theme = dark:Dimidium,light:dayfox
+theme = dark:Dimidium,light:Terminal Basic
 keybind = cmd+backspace=text:\x15
 font-family = "JetBrains Mono"
 font-thicken = true
