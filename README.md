@@ -9,6 +9,10 @@ This hosts the dotfiles and aliases for an insanely fast and rich Terminal exper
 brew install --cask ghostty
 ```
 
+```bash
+brew install fzf zoxide eza fd thefuck stow starship
+```
+
 > NOTE: All the following things needs to be done in the home folder. It won't work anywhere else.
 
 ```bash
@@ -17,9 +21,6 @@ git clone git@github.com:wrick17/dotfiles.git
 cd dotfiles
 stow .
 cd ~
-```
-```bash
-brew install fzf zoxide eza fd thefuck stow starship
 ```
 
 ```bash

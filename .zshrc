@@ -99,4 +99,7 @@ source "${HOME}/.alias.zsh"
 source "${HOME}/.secrets.zsh"
 
 # bun completions
-[ -s "/Users/pratyush.poddar/.bun/_bun" ] && source "/Users/pratyush.poddar/.bun/_bun"
+[ -s "${HOME}/.bun/_bun" ] && source "${HOME}/.bun/_bun"
+
+export EDITOR="cursor"
+export VISUAL="cursor"

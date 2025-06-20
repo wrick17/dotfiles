@@ -1,26 +1,90 @@
-theme = dark:Dimidium,light:Terminal Basic
-keybind = cmd+backspace=text:\x15
-font-family = "JetBrains Mono"
-font-thicken = true
-font-thicken-strength = 128
+# =============================================================================
+# Ghostty Terminal Configuration
+# =============================================================================
+# This configuration file contains settings for the Ghostty terminal emulator.
+# Settings are organized into logical sections for better maintainability.
 
-window-padding-balance = true 
-window-save-state = always
-macos-titlebar-style = native
-window-colorspace = "display-p3"
-adjust-cursor-thickness = 5
+# =============================================================================
+# VISUAL EFFECTS & ANIMATIONS
+# =============================================================================
+# Enable custom shader animations for smooth visual transitions
+custom-shader-animation = true
 
+# Set opacity for unfocused split panes (0.0 = transparent, 1.0 = opaque)
+unfocused-split-opacity = 0.95
+
+# =============================================================================
+# CLIPBOARD SETTINGS
+# =============================================================================
+# Allow Ghostty to read from the system clipboard
+clipboard-read = allow
+
+# Allow Ghostty to write to the system clipboard
+clipboard-write = allow
+
+# =============================================================================
+# WINDOW APPEARANCE & BEHAVIOR
+# =============================================================================
+# Show current working directory in window subtitle
+window-subtitle = working-directory
+
+# Enable vertical sync for smoother rendering
 window-vsync = true
 
-# split
+# Use Display P3 color space for better color accuracy on supported displays
+window-colorspace = "display-p3"
+
+# Always save and restore window state between sessions
+window-save-state = always
+
+# Use system theme (follows macOS light/dark mode)
+window-theme = system
+
+# Balance padding around window content
+window-padding-balance = true
+
+# =============================================================================
+# THEMES & COLORS
+# =============================================================================
+# Set different themes for dark and light modes
+theme = dark:Dimidium,light:Terminal Basic
+
+# =============================================================================
+# FONT CONFIGURATION
+# =============================================================================
+# Primary font family
+font-family = "JetBrains Mono"
+
+# Enable font thickening for better readability
+font-thicken = true
+
+# Font thickening strength (0-255, higher = thicker)
+font-thicken-strength = 128
+
+# =============================================================================
+# CURSOR SETTINGS
+# =============================================================================
+# Adjust cursor thickness for better visibility
+adjust-cursor-thickness = 5
+
+# =============================================================================
+# KEYBOARD SHORTCUTS
+# =============================================================================
+# Text editing shortcuts
+keybind = cmd+backspace=text:\x15
+
+# Split management shortcuts
 keybind = cmd+opt+right=new_split:right
 keybind = cmd+opt+down=new_split:down
+
+# Split navigation shortcuts
 keybind = cmd+shift+down=goto_split:bottom
 keybind = cmd+shift+up=goto_split:top
 keybind = cmd+shift+left=goto_split:left
 keybind = cmd+shift+right=goto_split:right
 
-keybind = shift+right=adjust_selection:right
-keybind = shift+left=adjust_selection:left
-
-unfocused-split-opacity = 0.95 
+# =============================================================================
+# MACOS SPECIFIC SETTINGS
+# =============================================================================
+# Use native macOS titlebar style for better system integration
+macos-titlebar-style = native
