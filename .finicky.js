@@ -15,6 +15,7 @@ const urls = [
 	"itx.sequoia.com/*",
 	"sequoiaone.sharepoint.com/*",
 	"chatgpt.com/*",
+	"*.office.com/*",
 ];
 
 export default {
