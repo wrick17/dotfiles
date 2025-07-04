@@ -18,24 +18,21 @@ const urls = [
 export default {
 	defaultBrowser: "Orc",
 	options: {
-		// Check for updates. Default: true
 		checkForUpdates: false,
-		// Log every request to file. Default: false
 		logRequests: false,
 	},
-	handlers: [
-		...urls.map((url) => ({
-			match: url,
-			browser: "Island",
-		})),
-	],
+	handlers: urls.map((url) => ({
+		match: url,
+		browser: "Island",
+	})),
+
 	rewrite: [
 		{
 			match: "statics.teams.cdn.office.net/*",
 			url: (url) => {
-				const newUrl = decodeURIComponent(url.search.replace("?url=", "")).split(
-					"&locale=en-us&dest=https://teams.microsoft.com",
-				)[0];
+				const newUrl = decodeURIComponent(
+					url.search.replace("?url=", ""),
+				).split("&locale=en-us&dest=https://teams.microsoft.com")[0];
 				return newUrl;
 			},
 		},
