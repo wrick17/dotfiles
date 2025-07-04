@@ -13,6 +13,7 @@ const urls = [
 	"app.datadoghq.com/*",
 	"app.aptrinsic.com/*",
 	"itx.sequoia.com/*",
+	"sequoiaone.sharepoint.com/*",
 ];
 
 export default {
