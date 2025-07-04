@@ -14,6 +14,7 @@ const urls = [
 	"app.aptrinsic.com/*",
 	"itx.sequoia.com/*",
 	"sequoiaone.sharepoint.com/*",
+	"chatgpt.com/*",
 ];
 
 export default {
