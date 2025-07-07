@@ -7,6 +7,7 @@ const urls = [
 	"jenkins-qa.sequoia-development.com/*",
 	"jenkins-production.sequoia-development.com/*",
 	"myapps.microsoft.com/*",
+	"*.myapps.microsoft.com/*",
 	"sonar-qa.sequoia-development.com/*",
 	"sequoiaconsulting.zoom.us/*",
 	"murren.greythr.com/*",
