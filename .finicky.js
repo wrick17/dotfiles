@@ -17,6 +17,7 @@ const urls = [
 	"sequoiaone.sharepoint.com/*",
 	"chatgpt.com/*",
 	"*.office.com/*",
+	"app.ashbyhq.com/*",
 ];
 
 export default {
