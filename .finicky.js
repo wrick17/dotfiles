@@ -18,6 +18,7 @@ const urls = [
 	"chatgpt.com/*",
 	"*.office.com/*",
 	"app.ashbyhq.com/*",
+	"*.cursor.com/*",
 ];
 
 export default {

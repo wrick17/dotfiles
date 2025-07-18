@@ -87,6 +87,7 @@ zstyle ':fzf-tab:complete:code:*' fzf-preview 'eza --tree --level=2 --color=alwa
 
 export PATH=/opt/homebrew/bin:$PATH
 export HOMEBREW_NO_AUTO_UPDATE=1
+export NODE_OPTIONS="--no-warnings"
 export NODE_TLS_REJECT_UNAUTHORIZED=0
 
 eval "$(fzf --zsh)"
