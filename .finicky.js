@@ -19,6 +19,8 @@ const urls = [
 	"*.office.com/*",
 	"app.ashbyhq.com/*",
 	"*.cursor.com/*",
+	"*.microsoftonline.com/*",
+	"www.figma.com/*",
 ];
 
 export default {
