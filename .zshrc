@@ -10,20 +10,44 @@ fi
 # Source/Load zinit
 source "${ZINIT_HOME}/zinit.zsh"
 
-# Load completions
-autoload -U compinit && compinit
+# Defer heavy init tasks until after the first prompt
+zinit light romkatv/zsh-defer
 
-zinit cdreplay -q
-
-# Add in zsh plugins
-zinit light Aloxaf/fzf-tab
+# Load core completions plugin; run compinit in background (fast path)
+# Ensure `zsh-users/zsh-completions` is available before compinit
 zinit light zsh-users/zsh-completions
+
+# Defer compinit fast path and zcompdump compilation
+zsh-defer -c '
+  autoload -Uz compinit
+  COMPDUMP="${XDG_CACHE_HOME:-$HOME/.cache}/zsh/.zcompdump"
+  mkdir -p "$(dirname "$COMPDUMP")"
+  compinit -C -d "$COMPDUMP"
+  if [ -s "$COMPDUMP" ]; then
+    zcompile "$COMPDUMP" 2>/dev/null
+  fi
+  # After compinit exists, safely replay compdefs
+  zinit cdreplay -q 2>/dev/null || true
+'
+
+# cdreplay moved to deferred compinit block above to ensure compinit is available
+
+# Add in zsh plugins (deferred where safe to reduce initial latency)
+zinit ice wait"1" lucid
+zinit light Aloxaf/fzf-tab
+
+zinit ice wait"1" lucid
 zinit light zsh-users/zsh-autosuggestions
+
+zinit ice wait"1" lucid
 zinit light zsh-users/zsh-syntax-highlighting
 
-# Add in snippets
+# Add in snippets (deferred)
+zinit ice wait"1" lucid
 zinit snippet OMZP::git
+zinit ice wait"1" lucid
 zinit snippet OMZP::yarn
+zinit ice wait"1" lucid
 zinit snippet OMZP::command-not-found
 
 # Keybindings
@@ -90,17 +114,37 @@ export HOMEBREW_NO_AUTO_UPDATE=1
 export NODE_OPTIONS="--no-warnings"
 export NODE_TLS_REJECT_UNAUTHORIZED=0
 
-eval "$(fzf --zsh)"
-eval "$(zoxide init zsh)"
+# Defer non-essential shell integrations (interactive shells only)
+if [[ -o interactive ]]; then
+  zsh-defer -c 'eval "$(fzf --zsh)"'
+  zsh-defer -c 'eval "$(zoxide init zsh)"'
+fi
+
+# Keep fnm early to ensure Node is ready for immediate use
 eval "$(fnm env --use-on-cd)"
-eval "$(thefuck --alias)"
-eval "$(starship init zsh)"
+# Lazy-load thefuck to avoid Python startup cost on shell init
+if command -v thefuck >/dev/null 2>&1; then
+  fuck() {
+    eval "$(thefuck --alias)"
+    fuck "$@"
+  }
+fi
+if [[ -o interactive ]]; then
+  eval "$(starship init zsh)"
+fi
 
 source "${HOME}/.alias.zsh"
 source "${HOME}/.secrets.zsh"
 
-# bun completions
-[ -s "${HOME}/.bun/_bun" ] && source "${HOME}/.bun/_bun"
+# bun completions (deferred)
+if [[ -o interactive ]]; then
+  zsh-defer -c '[ -s "${HOME}/.bun/_bun" ] && source "${HOME}/.bun/_bun"'
+fi
 
 export EDITOR="cursor"
 export VISUAL="cursor"
+
+# Enable profiling only when explicitly requested
+if [ -n "$ZSH_PROF" ]; then
+  zmodload zsh/zprof
+fi
