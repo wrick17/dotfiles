@@ -42,12 +42,8 @@ zinit light zsh-users/zsh-autosuggestions
 zinit ice wait"1" lucid
 zinit light zsh-users/zsh-syntax-highlighting
 
-# Add in snippets (deferred)
-zinit ice wait"1" lucid
 zinit snippet OMZP::git
-zinit ice wait"1" lucid
 zinit snippet OMZP::yarn
-zinit ice wait"1" lucid
 zinit snippet OMZP::command-not-found
 
 # Keybindings
