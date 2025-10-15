@@ -1,4 +1,8 @@
-alias cd="z"
+# Only remap cd in interactive shells; non-interactive sessions (e.g. Cursor tasks)
+# rely on the builtin cd command.
+if [[ -o interactive ]] && command -v z >/dev/null 2>&1; then
+  alias cd="z"
+fi
 alias ls="eza --all --color=always --long --icons=always --no-user --no-permissions"
 alias lst="eza --all --color=always --long --icons=always --no-user --no-permissions --tree --level=2"
 alias ll="ls"
@@ -271,5 +275,3 @@ dmgcreator() {
 alias dmg="dmgcreator"
 
 alias p="python"
-
-alias msedge="/Applications/Microsoft\ Edge.app/Contents/MacOS/Microsoft\ Edge"
