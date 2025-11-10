@@ -20,35 +20,15 @@ source "${ZINIT_HOME}/zinit.zsh"
 # Add in Powerlevel10k
 zinit ice depth=1; zinit light romkatv/powerlevel10k
 
-# Load zsh-defer for lazy loading support
-zinit light romkatv/zsh-defer
+# Load completions
+autoload -U compinit && compinit
 
-# Load zsh-completions first (needed before compinit)
-zinit light zsh-users/zsh-completions
+zinit cdreplay -q
 
-# Defer compinit to speed up startup - compinit is SLOW
-zsh-defer -c '
-  autoload -Uz compinit
-  COMPDUMP="${XDG_CACHE_HOME:-$HOME/.cache}/zsh/.zcompdump"
-  mkdir -p "$(dirname "$COMPDUMP")"
-  # -C skips security check for faster loading (safe on single-user systems)
-  compinit -C -d "$COMPDUMP"
-  # Compile the dump file for faster loading
-  if [ -s "$COMPDUMP" ]; then
-    zcompile "$COMPDUMP" 2>/dev/null
-  fi
-  # Replay completion definitions after compinit
-  zinit cdreplay -q 2>/dev/null || true
-'
-
-# Defer loading of heavy plugins (wait 1 second after prompt)
-zinit ice wait"1" lucid
+# Add in zsh plugins
 zinit light Aloxaf/fzf-tab
-
-zinit ice wait"1" lucid
+zinit light zsh-users/zsh-completions
 zinit light zsh-users/zsh-autosuggestions
-
-zinit ice wait"1" lucid
 zinit light zsh-users/zsh-syntax-highlighting
 
 # Add in snippets
@@ -72,6 +52,8 @@ setopt hist_ignore_all_dups
 setopt hist_save_no_dups
 setopt hist_ignore_dups
 setopt hist_find_no_dups
+
+source ~/powerlevel10k/powerlevel10k.zsh-theme
 
 # To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.
 [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
@@ -119,23 +101,10 @@ zstyle ':fzf-tab:complete:code:*' fzf-preview 'eza --tree --level=2 --color=alwa
 export PATH=/opt/homebrew/bin:$PATH
 typeset -g POWERLEVEL9K_INSTANT_PROMPT=quiet
 
-# Defer heavy shell integrations to speed up startup
-if [[ -o interactive ]]; then
-  zsh-defer -c 'eval "$(fzf --zsh)"'
-  zsh-defer -c 'eval "$(zoxide init zsh)"'
-fi
-
-# Keep fnm early for immediate Node availability
+eval "$(fzf --zsh)"
+eval "$(zoxide init zsh)"
 eval "$(fnm env --use-on-cd)"
-
-# Lazy-load thefuck to avoid Python startup penalty
-if command -v thefuck >/dev/null 2>&1; then
-  fuck() {
-    eval "$(thefuck --alias)"
-    unfunction fuck
-    fuck "$@"
-  }
-fi
+eval $(thefuck --alias)
 
 source "${HOME}/.alias.zsh"
 source "${HOME}/.secrets.zsh"
@@ -143,7 +112,5 @@ source "${HOME}/.secrets.zsh"
 export HOMEBREW_NO_AUTO_UPDATE=1
 export NODE_TLS_REJECT_UNAUTHORIZED=0
 
-# Defer bun completions
-if [[ -o interactive ]]; then
-  zsh-defer -c '[ -s "/Users/pratyush.poddar/.bun/_bun" ] && source "/Users/pratyush.poddar/.bun/_bun"'
-fi
+# bun completions
+[ -s "/Users/pratyush.poddar/.bun/_bun" ] && source "/Users/pratyush.poddar/.bun/_bun"
