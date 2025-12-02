@@ -267,6 +267,7 @@ alias ba="bun add"
 alias bda="bun run app:dev"
 alias bba="bun run app:build"
 alias bp="bun run preview"
+alias bt="bun run test"
 
 dmgcreator() {
 	hdiutil create -volname "$1" -srcfolder "$1.app" -ov -format UDZO "$1.dmg"
