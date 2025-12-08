@@ -4,9 +4,9 @@ This hosts the dotfiles and aliases for an insanely fast and rich Terminal exper
 
 > NOTE: Backup your .zshrc before doing this.
 
-**Install Ghostty first**
+**Install some essentials first**
 ```bash
-brew install --cask ghostty
+git clone --depth=1 https://github.com/romkatv/powerlevel10k.git ~/powerlevel10k
 ```
 
 ```bash
@@ -32,4 +32,8 @@ Add your secrets like `GITHUB_TOKEN` and all to your secrets to `.secrets.zsh`
 
 ```bash
 source ~/.zshrc
+```
+
+```bash
+p10k configure
 ```

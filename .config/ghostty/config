@@ -47,7 +47,8 @@ window-padding-balance = true
 # THEMES & COLORS
 # =============================================================================
 # Set different themes for dark and light modes
-theme = dark:Dimidium,light:Terminal Basic
+theme = Dimidium
+# theme = dark:Dimidium,light:Terminal Basic
 
 # =============================================================================
 # FONT CONFIGURATION
