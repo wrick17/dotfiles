@@ -21,6 +21,7 @@ const urls = [
 	"*.cursor.com/*",
 	"*.microsoftonline.com/*",
 	"www.figma.com/*",
+	"sequoia.gpcloudservice.com/*"
 ];
 
 export default {
