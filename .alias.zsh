@@ -226,6 +226,7 @@ alias as="agg start"
 alias python="/usr/bin/python3"
 alias pip="pip3"
 alias foo="echo foo"
+alias agent="cursor-agent"
 alias nvm="fnm"
 
 alias ymfe="yarn unlink @sequoiaconsulting/mfe-config-essentials ; yarn ; yarn link @sequoiaconsulting/mfe-config-essentials"

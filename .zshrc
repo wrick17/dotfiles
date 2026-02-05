@@ -98,7 +98,7 @@ zstyle ':completion:*' menu no
 zstyle ':fzf-tab:complete:z:*' fzf-preview 'eza -1 --color=always $realpath'
 zstyle ':fzf-tab:complete:code:*' fzf-preview 'eza --tree --level=2 --color=always $realpath'
 
-export PATH=/opt/homebrew/bin:$PATH
+export PATH=/opt/homebrew/bin:/Users/pratyush.poddar/.local/bin:$PATH
 typeset -g POWERLEVEL9K_INSTANT_PROMPT=quiet
 
 eval "$(fzf --zsh)"
