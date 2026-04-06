@@ -1,3 +1,6 @@
+# Must be set before the instant prompt block below
+typeset -g POWERLEVEL9K_INSTANT_PROMPT=quiet
+
 # Enable Powerlevel10k instant prompt. Should stay close to the top of ~/.zshrc.
 # Initialization code that may require console input (password prompts, [y/n]
 # confirmations, etc.) must go above this block; everything else may go below.
@@ -20,11 +23,6 @@ source "${ZINIT_HOME}/zinit.zsh"
 # Add in Powerlevel10k
 zinit ice depth=1; zinit light romkatv/powerlevel10k
 
-# Load completions
-autoload -U compinit && compinit
-
-zinit cdreplay -q
-
 # Add in zsh plugins
 zinit light Aloxaf/fzf-tab
 zinit light zsh-users/zsh-completions
@@ -35,16 +33,46 @@ zinit light zsh-users/zsh-syntax-highlighting
 zinit snippet OMZP::git
 zinit snippet OMZP::command-not-found
 
+# Load completions — gated to once per day for faster startup
+autoload -U compinit
+if [[ -n "$HOME/.zcompdump"(#qN.mh+24) ]]; then
+  compinit
+else
+  compinit -C
+fi
+
+zinit cdreplay -q
+
 # Keybindings
 bindkey -e
 bindkey '^[[A' history-search-backward
 bindkey '^[[B' history-search-forward
 
+# Ctrl+L: erase the visible screen AND the scrollback buffer.
+# \033[3J = erase saved (scrollback) lines — honoured by both Ghostty and cmux.
+# Ghostty's cmd+k is remapped in the Ghostty config to send \x0c (Ctrl+L) to
+# trigger this widget.
+# Timestamp guard: cmux echoes \x0c back to the pane after clear-history, which
+# would re-trigger this widget in a loop. The guard lets the first call through
+# and absorbs any re-invocations within 2s.
+zmodload zsh/datetime
+_LAST_CLEAR_TS=0
+_clear_scrollback() {
+  local now=$EPOCHREALTIME
+  printf '\033[3J'
+  if (( now - _LAST_CLEAR_TS > 2 )); then
+    _LAST_CLEAR_TS=$now
+    cmux clear-history </dev/null >/dev/null 2>&1
+  fi
+  zle .clear-screen
+}
+zle -N _clear_scrollback
+bindkey '^L' _clear_scrollback
+
 # History
 HISTSIZE=5000
 HISTFILE=~/.zsh_history
 SAVEHIST=$HISTSIZE
-HISTDUP=erase
 setopt appendhistory
 setopt sharehistory
 setopt hist_ignore_space
@@ -52,8 +80,6 @@ setopt hist_ignore_all_dups
 setopt hist_save_no_dups
 setopt hist_ignore_dups
 setopt hist_find_no_dups
-
-source ~/powerlevel10k/powerlevel10k.zsh-theme
 
 # To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.
 [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
@@ -98,13 +124,11 @@ zstyle ':completion:*' menu no
 zstyle ':fzf-tab:complete:z:*' fzf-preview 'eza -1 --color=always $realpath'
 zstyle ':fzf-tab:complete:code:*' fzf-preview 'eza --tree --level=2 --color=always $realpath'
 
-export PATH=/opt/homebrew/bin:/Users/pratyush.poddar/.local/bin:$PATH
-typeset -g POWERLEVEL9K_INSTANT_PROMPT=quiet
+export PATH=/opt/homebrew/bin:$HOME/.local/bin:$PATH
 
 eval "$(fzf --zsh)"
 eval "$(zoxide init zsh)"
 eval "$(fnm env --use-on-cd)"
-eval $(thefuck --alias)
 
 source "${HOME}/.alias.zsh"
 source "${HOME}/.secrets.zsh"
@@ -114,4 +138,4 @@ export NODE_TLS_REJECT_UNAUTHORIZED=0
 export NODE_NO_WARNINGS=1
 
 # bun completions
-[ -s "/Users/pratyush.poddar/.bun/_bun" ] && source "/Users/pratyush.poddar/.bun/_bun"
+[ -s "$HOME/.bun/_bun" ] && source "$HOME/.bun/_bun"

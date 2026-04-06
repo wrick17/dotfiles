@@ -89,3 +89,11 @@ keybind = cmd+shift+right=goto_split:right
 # =============================================================================
 # Use native macOS titlebar style for better system integration
 macos-titlebar-style = native
+keybind = shift+enter=text:\x1b\r
+
+# Send Ctrl+L to the shell instead of using Ghostty's built-in clear_screen action.
+# Ghostty's action pushes the current screen into scrollback before clearing, leaving
+# one page behind. By routing through the zsh ZLE widget instead, the shell writes
+# \033[3J (erase saved lines) directly to the pty — which both Ghostty and Cmux
+# honour natively — so scrollback is fully wiped in both terminals.
+keybind = cmd+k=text:\x0c

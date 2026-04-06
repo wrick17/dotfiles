@@ -245,7 +245,6 @@ function aal() {
 }
 alias aal="aal"
 
-alias f="fuck"
 
 alias cr="cargo run"
 alias cb="cargo build"
@@ -277,3 +276,7 @@ dmgcreator() {
 alias dmg="dmgcreator"
 
 alias p="python"
+
+alias doctor="bunx -y react-doctor@latest . --verbose --no-ami -y"
+
+alias claude="claude --dangerously-skip-permissions"
