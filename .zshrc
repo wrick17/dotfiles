@@ -57,12 +57,15 @@ bindkey '^[[B' history-search-forward
 # and absorbs any re-invocations within 2s.
 zmodload zsh/datetime
 _LAST_CLEAR_TS=0
+_HAS_CMUX=$(( $+commands[cmux] ))
 _clear_scrollback() {
   local now=$EPOCHREALTIME
   printf '\033[3J'
   if (( now - _LAST_CLEAR_TS > 2 )); then
     _LAST_CLEAR_TS=$now
-    cmux clear-history </dev/null >/dev/null 2>&1
+    if (( _HAS_CMUX )); then
+      command cmux clear-history </dev/null >/dev/null 2>&1 &!
+    fi
   fi
   zle .clear-screen
 }
