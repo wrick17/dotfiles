@@ -44,19 +44,23 @@ Usage: gpr <[options]>
 
 Options:
 	-j   --jira           Jira ticket id
-	-d   --description    Description
+	    --description    PR description (long form)
 	-t   --title          Title
+	-d   --draft           Create PR as draft
 	-h   --help           Help
 
-NOTE: You have to provide description and either jira or title.
+NOTE: You have to provide --description and either jira or title.
 
 Example:
 
 # Create a PR from master to dev branch
-gpr master dev -t \"master dev sync\" -d \"rebase dev with master\"
+gpr master dev -t \"master dev sync\" --description \"rebase dev with master\"
 
 # Create a PR from dev to current branch to dev branch with proper title and description accroding to PR template
-gpr dev -j \"PRDS-1234\" -d \"fix a big bug\"
+gpr dev -j \"PRDS-1234\" --description \"fix a big bug\"
+
+# Create a draft PR
+gpr dev -j \"PRDS-1234\" --description \"fix a big bug\" -d
 "
 }
 function gprm() {
@@ -123,6 +127,7 @@ function gpr() {
 		secondArg="dev"
 	fi
 	count=0
+	draft=""
 
 	if [ $# -eq 0 ]; then
 		_gpr_usage
@@ -135,7 +140,10 @@ function gpr() {
 			shift
 			ticket="${1}"
 			;;
-		-d | --description)
+		-d | --draft)
+			draft="--draft"
+			;;
+		--description)
 			shift
 			description="${1}"
 			;;
@@ -171,7 +179,7 @@ Link to Jira Ticket: https://sequoiacg.atlassian.net/browse/${ticket}
 Remarks: ${description}"
 		fi
 
-		gh pr create --base "${base}" --head "${head}" --title "${title}" --body "${body}"
+		gh pr create --base "${base}" --head "${head}" --title "${title}" --body "${body}" ${draft}
 	fi
 
 	unset target
@@ -180,6 +188,7 @@ Remarks: ${description}"
 	unset ticket
 	unset body
 	unset description
+	unset draft
 	unset secondArg
 	unset final
 	unset base
@@ -252,10 +261,12 @@ alias ca="cargo add"
 
 DISABLE_AUTO_TITLE="true"
 
-precmd() {
-	# sets the tab title to current dir
+_set_tab_title() {
+	# Warp manages its own tab titles via OSC; emitting \e]1; corrupts bootstrap.
+	[[ "$TERM_PROGRAM" == "WarpTerminal" ]] && return
 	echo -ne "\e]1;${PWD##*/}\a"
 }
+precmd_functions+=(_set_tab_title)
 
 alias b="bun"
 alias bs="bun start"

@@ -1,11 +1,29 @@
-# Must be set before the instant prompt block below
-typeset -g POWERLEVEL9K_INSTANT_PROMPT=quiet
+# Warp sources .zshrc mid-bootstrap (ZLE off). p10k instant prompt + gitstatus output
+# corrupts bootstrap on new tabs and inactive panes. Defer full init until bootstrap completes.
+if [[ "$TERM_PROGRAM" == "WarpTerminal" && -z "${WARP_BOOTSTRAPPED:-}" && -z "${_ZSHRC_DEFERRED_LOAD:-}" ]]; then
+  typeset -g POWERLEVEL9K_INSTANT_PROMPT=off
+  export PATH=/opt/homebrew/bin:$HOME/.local/bin:$PATH
 
-# Enable Powerlevel10k instant prompt. Should stay close to the top of ~/.zshrc.
-# Initialization code that may require console input (password prompts, [y/n]
-# confirmations, etc.) must go above this block; everything else may go below.
-if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
-  source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
+  _warp_load_full_zshrc() {
+    [[ -n "${WARP_BOOTSTRAPPED:-}" ]] || return
+    precmd_functions=(${precmd_functions:#_warp_load_full_zshrc})
+    _ZSHRC_DEFERRED_LOAD=1
+    source "${ZDOTDIR:-$HOME}/.zshrc"
+    unset _ZSHRC_DEFERRED_LOAD
+    (( ${+functions[zle]} )) && zle reset-prompt
+  }
+  precmd_functions=(_warp_load_full_zshrc ${precmd_functions[@]})
+  return
+fi
+
+# p10k instant prompt is incompatible with Warp; keep it for other terminals only.
+if [[ "$TERM_PROGRAM" == "WarpTerminal" ]]; then
+  typeset -g POWERLEVEL9K_INSTANT_PROMPT=off
+else
+  typeset -g POWERLEVEL9K_INSTANT_PROMPT=quiet
+  if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
+    source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
+  fi
 fi
 
 # Set the directory we want to store zinit and plugins
@@ -43,34 +61,36 @@ fi
 
 zinit cdreplay -q
 
-# Keybindings
-bindkey -e
-bindkey '^[[A' history-search-backward
-bindkey '^[[B' history-search-forward
+# Keybindings and ZLE widgets require ZLE (disabled during Warp bootstrap).
+if [[ -o zle ]]; then
+  bindkey -e
+  bindkey '^[[A' history-search-backward
+  bindkey '^[[B' history-search-forward
 
-# Ctrl+L: erase the visible screen AND the scrollback buffer.
-# \033[3J = erase saved (scrollback) lines — honoured by both Ghostty and cmux.
-# Ghostty's cmd+k is remapped in the Ghostty config to send \x0c (Ctrl+L) to
-# trigger this widget.
-# Timestamp guard: cmux echoes \x0c back to the pane after clear-history, which
-# would re-trigger this widget in a loop. The guard lets the first call through
-# and absorbs any re-invocations within 2s.
-zmodload zsh/datetime
-_LAST_CLEAR_TS=0
-_HAS_CMUX=$(( $+commands[cmux] ))
-_clear_scrollback() {
-  local now=$EPOCHREALTIME
-  printf '\033[3J'
-  if (( now - _LAST_CLEAR_TS > 2 )); then
-    _LAST_CLEAR_TS=$now
-    if (( _HAS_CMUX )); then
-      command cmux clear-history </dev/null >/dev/null 2>&1 &!
+  # Ctrl+L: erase the visible screen AND the scrollback buffer.
+  # \033[3J = erase saved (scrollback) lines — honoured by both Ghostty and cmux.
+  # Ghostty's cmd+k is remapped in the Ghostty config to send \x0c (Ctrl+L) to
+  # trigger this widget.
+  # Timestamp guard: cmux echoes \x0c back to the pane after clear-history, which
+  # would re-trigger this widget in a loop. The guard lets the first call through
+  # and absorbs any re-invocations within 2s.
+  zmodload zsh/datetime
+  _LAST_CLEAR_TS=0
+  _HAS_CMUX=$(( $+commands[cmux] ))
+  _clear_scrollback() {
+    local now=$EPOCHREALTIME
+    printf '\033[3J'
+    if (( now - _LAST_CLEAR_TS > 2 )); then
+      _LAST_CLEAR_TS=$now
+      if (( _HAS_CMUX )); then
+        command cmux clear-history </dev/null >/dev/null 2>&1 &!
+      fi
     fi
-  fi
-  zle .clear-screen
-}
-zle -N _clear_scrollback
-bindkey '^L' _clear_scrollback
+    zle .clear-screen
+  }
+  zle -N _clear_scrollback
+  bindkey '^L' _clear_scrollback
+fi
 
 # History
 HISTSIZE=5000
@@ -95,7 +115,6 @@ _fzf_compgen_path() {
   fd --hidden --exclude .git . "$1"
 }
 
-# Use fd to generate the list for directory completion
 _fzf_compgen_dir() {
   fd --type=d --hidden --exclude .git . "$1"
 }
@@ -105,9 +124,6 @@ show_file_or_dir_preview="if [ -d {} ]; then eza --tree --level=2 --color=always
 export FZF_CTRL_T_OPTS="--preview '$show_file_or_dir_preview'"
 export FZF_ALT_C_OPTS="--preview 'eza --tree --color=always {} | head -200'"
 
-# Advanced customization of fzf options via _fzf_comprun function
-# - The first argument to the function is the name of the command.
-# - You should make sure to pass the rest of the arguments to fzf.
 _fzf_comprun() {
   local command=$1
   shift
@@ -129,7 +145,9 @@ zstyle ':fzf-tab:complete:code:*' fzf-preview 'eza --tree --level=2 --color=alwa
 
 export PATH=/opt/homebrew/bin:$HOME/.local/bin:$PATH
 
-eval "$(fzf --zsh)"
+if [[ -o zle ]]; then
+  eval "$(fzf --zsh)"
+fi
 eval "$(zoxide init zsh)"
 eval "$(fnm env --use-on-cd)"
 
