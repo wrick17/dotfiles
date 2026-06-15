@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+
+branch="$(git rev-parse --abbrev-ref HEAD)"
+
+if [[ $# -eq 0 ]]; then
+	git pull origin "$branch"
+else
+	git pull origin "$1"
+fi

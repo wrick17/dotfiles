@@ -2,7 +2,7 @@
 # corrupts bootstrap on new tabs and inactive panes. Defer full init until bootstrap completes.
 if [[ "$TERM_PROGRAM" == "WarpTerminal" && -z "${WARP_BOOTSTRAPPED:-}" && -z "${_ZSHRC_DEFERRED_LOAD:-}" ]]; then
   typeset -g POWERLEVEL9K_INSTANT_PROMPT=off
-  export PATH=/opt/homebrew/bin:$HOME/.local/bin:$PATH
+  export PATH="$HOME/dotfiles/bin:/opt/homebrew/bin:$HOME/.local/bin:$PATH"
 
   _warp_load_full_zshrc() {
     [[ -n "${WARP_BOOTSTRAPPED:-}" ]] || return

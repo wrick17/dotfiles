@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+
+# shellcheck source=lib/github-web-url.sh
+source "$(cd "$(dirname "$0")" && pwd)/lib/github-web-url.sh"
+
+branch=$(git symbolic-ref --short HEAD)
+url=$(github_web_url)
+second_arg="${1:-dev}"
+count=0
+title=""
+description=""
+target=""
+
+while (($#)); do
+	case $1 in
+	-t=* | --title=*)
+		title="${1#*=}"
+		;;
+	-d=* | --description=*)
+		description="${1#*=}"
+		;;
+	*)
+		if [[ $count -eq 1 ]]; then
+			branch=$second_arg
+			target=$1
+		else
+			target=$1
+		fi
+		;;
+	esac
+	count=$((count + 1))
+	shift
+done
+
+if [[ $count -eq 0 ]]; then
+	base="${url}/compare/${branch}"
+else
+	base="${url}/compare/${target}...${branch}"
+fi
+
+temp="${base}?expand=1"
+
+if [[ -n $title && -n $description ]]; then
+	temp="${temp}&title=${title}&body=${description}"
+elif [[ -n $title ]]; then
+	temp="${temp}&title=${title}"
+elif [[ -n $description ]]; then
+	temp="${temp}&body=${description}"
+fi
+
+open "${temp}"

@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+
+if [[ $# -eq 0 ]]; then
+	echo "Usage: aal <package>" >&2
+	exit 1
+fi
+
+agg unlink @sequoiaconsulting/mfe-config-essentials
+agg add "$1"
+agg link @sequoiaconsulting/mfe-config-essentials

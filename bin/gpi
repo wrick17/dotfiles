@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+
+# shellcheck source=lib/github-web-url.sh
+source "$(cd "$(dirname "$0")" && pwd)/lib/github-web-url.sh"
+
+branch=$(git symbolic-ref --short HEAD)
+url=$(github_web_url)
+open "${url}/issues/new?title=deploy%20${branch}"
