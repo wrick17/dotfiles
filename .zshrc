@@ -165,7 +165,7 @@ export NODE_NO_WARNINGS=1
 for _bin_cmd in \
 	a agent as b ba bb bba bd bda bi bp br bs bt \
 	cat claude doctor \
-	g ga gb gbc gca gc gco glc glg gp gpr gs gsp gst \
+	g ga gb gbc gca gc gco glc glg gp gpr gprm gs gsp gst \
 	ll ls lst nvm; do
 	unalias "$_bin_cmd" 2>/dev/null
 done

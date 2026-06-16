@@ -1,9 +1,19 @@
 #!/usr/bin/env bash
 
 github_web_url() {
-	local remote remove_dot_git remove_colon
+	local remote
 	remote="${1:-$(git config --get remote.origin.url)}"
-	remove_dot_git="${remote/.git/}"
-	remove_colon="${remove_dot_git/://}"
-	printf '%s' "${remove_colon/git\@/https:\/\/}"
+	remote="${remote%.git}"
+
+	if [[ $remote =~ ^git@([^:]+):(.+)$ ]]; then
+		printf 'https://%s/%s' "${BASH_REMATCH[1]}" "${BASH_REMATCH[2]}"
+		return
+	fi
+
+	if [[ $remote =~ ^https?:// ]]; then
+		printf '%s' "$remote"
+		return
+	fi
+
+	printf '%s' "$remote"
 }
