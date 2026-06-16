@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+sha=$(git rev-parse HEAD)
+printf '%s\n' "$sha"
+printf '%s' "$sha" | pbcopy

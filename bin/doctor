@@ -1,0 +1,2 @@
+#!/usr/bin/env bash
+exec bunx -y react-doctor@latest . --verbose --no-ami -y "$@"

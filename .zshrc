@@ -47,8 +47,8 @@ zinit light zsh-users/zsh-completions
 zinit light zsh-users/zsh-autosuggestions
 zinit light zsh-users/zsh-syntax-highlighting
 
-# Add in snippets
-zinit snippet OMZP::git
+# OMZ git plugin aliases (gco, gp, gst, …) conflict with ~/dotfiles/bin/* scripts.
+# Git completions come from zsh-completions; omit OMZP::git.
 zinit snippet OMZP::command-not-found
 
 # Load completions — gated to once per day for faster startup
@@ -143,7 +143,7 @@ zstyle ':completion:*' menu no
 zstyle ':fzf-tab:complete:z:*' fzf-preview 'eza -1 --color=always $realpath'
 zstyle ':fzf-tab:complete:code:*' fzf-preview 'eza --tree --level=2 --color=always $realpath'
 
-export PATH=/opt/homebrew/bin:$HOME/.local/bin:$PATH
+export PATH="$HOME/dotfiles/bin:/opt/homebrew/bin:$HOME/.local/bin:$PATH"
 
 if [[ -o zle ]]; then
   eval "$(fzf --zsh)"
@@ -160,3 +160,13 @@ export NODE_NO_WARNINGS=1
 
 # bun completions
 [ -s "$HOME/.bun/_bun" ] && source "$HOME/.bun/_bun"
+
+# Last: drop aliases so ~/dotfiles/bin/* wins in interactive shells.
+for _bin_cmd in \
+	a agent as b ba bb bba bd bda bi bp br bs bt \
+	cat claude doctor \
+	g ga gb gbc gca gc gco glc glg gp gpr gs gsp gst \
+	ll ls lst nvm; do
+	unalias "$_bin_cmd" 2>/dev/null
+done
+unset _bin_cmd

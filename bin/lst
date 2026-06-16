@@ -1,0 +1,2 @@
+#!/usr/bin/env bash
+exec eza --all --color=always --long --icons=always --no-user --no-permissions --tree --level=2 "$@"

@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+branch=$(git rev-parse --abbrev-ref HEAD)
+printf '%s\n' "$branch"
+printf '%s' "$branch" | pbcopy
