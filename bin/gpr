@@ -1,0 +1,96 @@
+#!/usr/bin/env bash
+
+gpr_usage() {
+	cat <<'EOF'
+
+Usage: gpr <target-branch> [options]
+
+Options:
+	-j   --jira           Jira ticket id
+	    --description    PR description (long form)
+	-t   --title          Title
+	-d   --draft          Create PR as draft
+	-h   --help           Help
+
+NOTE: Provide --description and either -j or -t.
+
+Examples:
+
+gpr dev -j "PRDS-1234" --description "fix a big bug"
+gpr dev -j "PRDS-1234" --description "fix a big bug" -d
+EOF
+}
+
+die() {
+	echo "gpr: $*" >&2
+	exit 1
+}
+
+branch=$(git symbolic-ref --short HEAD 2>/dev/null) || die "not on a branch"
+second_arg="${1:-dev}"
+draft=""
+title=""
+description=""
+ticket=""
+
+if [[ $# -eq 0 ]]; then
+	gpr_usage
+	exit 0
+fi
+
+while (($#)); do
+	case $1 in
+	-j | --jira)
+		shift
+		ticket="${1:-}"
+		[[ -n $ticket ]] || die "missing value for $1"
+		shift
+		;;
+	-d | --draft)
+		draft="--draft"
+		shift
+		;;
+	--description)
+		shift
+		description="${1:-}"
+		[[ -n $description ]] || die "missing value for --description"
+		shift
+		;;
+	-t | --title)
+		shift
+		title="${1:-}"
+		[[ -n $title ]] || die "missing value for -t/--title"
+		shift
+		;;
+	-h | --help)
+		gpr_usage
+		exit 0
+		;;
+	-*)
+		die "unknown option: $1"
+		;;
+	*)
+		shift
+		;;
+	esac
+done
+
+target=$second_arg
+base="${target}"
+head="${branch}"
+body="${description}"
+
+[[ -n $description ]] || die "missing --description"
+[[ -n $title || -n $ticket ]] || die "provide -j/--jira or -t/--title"
+
+if [[ -n $ticket ]]; then
+	title="${ticket} ${description}"
+	body="### Description
+Jira Id: ${ticket}
+Link to Jira Ticket: https://sequoiacg.atlassian.net/browse/${ticket}
+Remarks: ${description}"
+fi
+
+echo "Creating PR: ${head} -> ${base}${draft:+ (draft)}"
+# shellcheck disable=SC2086
+gh pr create --base "${base}" --head "${head}" --title "${title}" --body "${body}" ${draft}
