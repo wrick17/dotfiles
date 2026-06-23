@@ -86,6 +86,8 @@ setopt hist_find_no_dups
 
 # To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.
 [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
+# Keep instant prompt warning-free even if ~/.p10k.zsh was generated with "verbose".
+typeset -g POWERLEVEL9K_INSTANT_PROMPT=quiet
 
 export FZF_DEFAULT_COMMAND="fd --hidden --strip-cwd-prefix --exclude .git"
 export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
@@ -128,6 +130,7 @@ zstyle ':fzf-tab:complete:z:*' fzf-preview 'eza -1 --color=always $realpath'
 zstyle ':fzf-tab:complete:code:*' fzf-preview 'eza --tree --level=2 --color=always $realpath'
 
 export PATH=/opt/homebrew/bin:$HOME/.local/bin:$PATH
+export PATH='/Applications/Visual Studio Code.app/Contents/Resources/app/bin':$PATH
 
 eval "$(fzf --zsh)"
 eval "$(zoxide init zsh)"

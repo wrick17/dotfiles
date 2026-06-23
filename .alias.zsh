@@ -280,3 +280,23 @@ alias p="python"
 alias doctor="bunx -y react-doctor@latest . --verbose --no-ami -y"
 
 alias claude="claude --dangerously-skip-permissions"
+
+
+alias j="jj"                         # jj
+alias jst="jj st"                    # show working-copy status
+alias jl="jj log"                    # show commit graph
+alias jd="jj desc -m"                # describe current change
+alias jdf="jj diff"                  # show current change diff
+alias jc="jj commit -m"              # describe current change and start a new one
+alias jn="jj new"                    # start a new change
+alias jr="jj abandon"                # delete a change
+alias ju="jj undo"                   # undo last jj operation
+alias jb="jj b"                      # bookmark commands
+alias jbl="jj b l"                   # list bookmarks
+alias jbc="jj b c"                   # create bookmark
+alias jco="jj b c"                   # create bookmark, git checkout-ish muscle memory
+alias jbs="jj b s"                   # create or move bookmark
+alias jbd="jj b d"                   # delete bookmark
+alias jf="jj git fetch"              # fetch Git remotes
+alias jp="jj git push"               # push to Git remote
+alias jpb="jj git push --bookmark"   # push a bookmark
