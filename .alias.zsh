@@ -300,3 +300,4 @@ alias jbd="jj b d"                   # delete bookmark
 alias jf="jj git fetch"              # fetch Git remotes
 alias jp="jj git push"               # push to Git remote
 alias jpb="jj git push --bookmark"   # push a bookmark
+alias je="jj edit"				 	 # edit a change
