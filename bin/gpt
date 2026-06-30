@@ -1,0 +1,188 @@
+#!/usr/bin/env bash
+
+# shellcheck source=lib/github-web-url.sh
+source "$(cd "$(dirname "$0")" && pwd)/lib/github-web-url.sh"
+
+gpt_usage() {
+	cat <<'EOF'
+
+Usage: gpt <env> [options]
+
+  env: dev | sprint | hotfix | hotfix-mt | release-YYMM
+
+Options:
+  -b  --branch    Actual git branch to tag (required for hotfix/hotfix-mt)
+  -h  --help      Help
+
+Examples:
+  gpt dev
+  gpt sprint
+  gpt release-2607
+  gpt hotfix -b hotfix/fix-auth-bug
+EOF
+}
+
+die() {
+	echo "gpt: $*" >&2
+	exit 1
+}
+
+log_step()    { echo "==> $*"; }
+log_success() { echo "[OK] $*"; }
+log_info()    { echo "[INFO] $*"; }
+log_warn()    { echo "[WARN] $*"; }
+
+if [[ $# -eq 0 || "$1" == "-h" || "$1" == "--help" ]]; then
+	gpt_usage
+	exit 0
+fi
+
+tag_name="$1"
+shift
+
+branch_override=""
+
+while (($#)); do
+	case $1 in
+	-b | --branch)
+		shift
+		branch_override="${1:-}"
+		[[ -n $branch_override ]] || die "missing value for -b/--branch"
+		shift
+		;;
+	-h | --help)
+		gpt_usage
+		exit 0
+		;;
+	-*)
+		die "unknown option: $1"
+		;;
+	*)
+		shift
+		;;
+	esac
+done
+
+case "$tag_name" in
+	dev | sprint | hotfix | hotfix-mt | release-*) ;;
+	*) die "invalid env '$tag_name'. Use: dev, sprint, hotfix, hotfix-mt, or release-YYMM" ;;
+esac
+
+if [[ "$tag_name" == "hotfix" || "$tag_name" == "hotfix-mt" ]]; then
+	[[ -n $branch_override ]] || die "hotfix/hotfix-mt requires -b <actual-branch>"
+	my_branch="$branch_override"
+else
+	my_branch="${branch_override:-$tag_name}"
+fi
+
+repo_url=$(git config --get remote.origin.url 2>/dev/null) || die "not a git repo or no remote origin"
+repo_name=$(basename "${repo_url%.git}")
+
+# macOS date
+current_date=$(date +"%y.%m.%d")
+current_day=$(date +"%d")
+current_month=$(date +"%m")
+previous_month=$(date -v-1m +"%m")
+previous2_month=$(date -v-2m +"%m")
+current_year=$(date +"%y")
+
+echo ""
+echo "Repo:   $repo_name"
+echo "Env:    $tag_name"
+echo "Branch: $my_branch"
+echo ""
+
+log_step "Fetching tags..."
+git fetch --all --tags --quiet
+
+# Sync check for release/sprint/hotfix
+if [[ "$tag_name" == release-* || "$tag_name" == "sprint" || "$tag_name" == "hotfix" || "$tag_name" == "hotfix-mt" ]]; then
+	log_step "Checking $my_branch is in sync with master..."
+
+	branch_head=$(git rev-parse "origin/$my_branch" 2>/dev/null) || die "origin/$my_branch not found — push branch first"
+	master_head=$(git rev-parse "origin/master" 2>/dev/null) || die "origin/master not found"
+	merge_base=$(git merge-base "origin/$my_branch" "origin/master")
+
+	if [[ "$branch_head" == "$master_head" ]]; then
+		log_success "Branch is in sync with master"
+	elif [[ "$master_head" == "$merge_base" ]]; then
+		log_success "Branch is ahead of master (all master changes included)"
+	elif [[ "$branch_head" == "$merge_base" ]]; then
+		die "$my_branch is behind master — pull latest master before tagging"
+	else
+		die "$my_branch has diverged from master — merge master before tagging"
+	fi
+fi
+
+# Find previous tag
+previous_tag=$(git tag --list "${tag_name}-v*" --sort=-version:refname | awk 'NR==1')
+log_info "Previous tag: ${previous_tag:-none}"
+
+# Early exit: skip if previous tag already points to current HEAD
+branch_commit=$(git rev-list -n 1 "origin/$my_branch")
+if [[ -n "$previous_tag" ]]; then
+	prev_commit=$(git rev-list -n 1 "$previous_tag" 2>/dev/null || echo "")
+	if [[ -n "$prev_commit" && "$prev_commit" == "$branch_commit" ]]; then
+		web_url=$(github_web_url)
+		log_info "No new commits since $previous_tag (commit: $branch_commit)"
+		log_info "Existing release: ${web_url}/releases/tag/${previous_tag}"
+		exit 0
+	fi
+fi
+
+# Compute new tag
+if [[ "$tag_name" == "release-${current_year}${current_month}"* || \
+      "$tag_name" == "release-${current_year}${previous_month}"* || \
+      "$tag_name" == "release-${current_year}${previous2_month}"* ]]; then
+	# Release branch: day-based versioning e.g. release-2607-v30.1
+	if [[ "$previous_tag" == *"v${current_day}."* ]]; then
+		last_digit="${previous_tag##*.}"
+		new_tag="${tag_name}-v${current_day}.$((last_digit + 1))"
+	else
+		new_tag="${tag_name}-v${current_day}.1"
+	fi
+elif [[ "$previous_tag" == *"${current_date}"* ]]; then
+	last_digit="${previous_tag##*.}"
+	new_tag="${tag_name}-v${current_date}.$((last_digit + 1))"
+else
+	if [[ "$tag_name" == "release-"* ]]; then
+		new_tag="${tag_name}-v${current_day}.1"
+	else
+		new_tag="${tag_name}-v${current_date}.1"
+	fi
+fi
+
+# Resolve tag collision
+if git tag --list "$new_tag" | grep -q .; then
+	log_warn "Tag $new_tag already exists — finding next available..."
+	tag_base="${new_tag%.*}"
+	highest=0
+	while IFS= read -r existing; do
+		[[ -z "$existing" ]] && continue
+		ver="${existing##*.}"
+		[[ "$ver" =~ ^[0-9]+$ ]] && (( ver > highest )) && highest=$ver
+	done < <(git tag --list "${tag_base}.*" --sort=version:refname)
+	new_tag="${tag_base}.$((highest + 1))"
+fi
+
+log_info "New tag: $new_tag"
+
+# Create tag and GitHub release
+log_step "Creating tag $new_tag at $branch_commit..."
+
+git tag -a "$new_tag" "$branch_commit" -m "Release notes for $new_tag"
+if ! git push origin "$new_tag"; then
+	git tag -d "$new_tag"
+	die "push rejected — local tag $new_tag deleted. Check repo tag rules on GitHub."
+fi
+
+prerelease_flag="--prerelease"
+if [[ "$tag_name" == "release-"* || "$tag_name" == "hotfix" || "$tag_name" == "hotfix-mt" ]]; then
+	prerelease_flag=""
+fi
+
+# shellcheck disable=SC2086
+gh release create "$new_tag" --generate-notes --title "$new_tag" $prerelease_flag
+
+web_url=$(github_web_url)
+log_success "Done: ${web_url}/releases/tag/${new_tag}"

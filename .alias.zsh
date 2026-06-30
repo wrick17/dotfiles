@@ -48,3 +48,6 @@ _set_tab_title() {
 precmd_functions+=(_set_tab_title)
 
 alias p="python"
+
+alias sis="sis -e boilerplate"
+alias run="run -e boilerplate"

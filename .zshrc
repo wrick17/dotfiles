@@ -170,3 +170,4 @@ for _bin_cmd in \
 	unalias "$_bin_cmd" 2>/dev/null
 done
 unset _bin_cmd
+alias work='lsof -ti:9191 | xargs kill -9 2>/dev/null; lsof -ti:9193 | xargs kill -9 2>/dev/null; cd /Users/burhan.bharmal/ec_ainative_tools_internal/sequoia-cloud/workbench && ([ -d .venv ] || python3.12 -m venv .venv) && git fetch origin && git checkout main && git reset --hard origin/main && .venv/bin/pip install -r requirements.txt --quiet && .venv/bin/python workbench.py'
