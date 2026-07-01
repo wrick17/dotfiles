@@ -130,7 +130,6 @@ zstyle ':fzf-tab:complete:z:*' fzf-preview 'eza -1 --color=always $realpath'
 zstyle ':fzf-tab:complete:code:*' fzf-preview 'eza --tree --level=2 --color=always $realpath'
 
 export PATH=/opt/homebrew/bin:$HOME/.local/bin:/Users/wrick/.bun/bin:$PATH
-export PATH='/Applications/Visual Studio Code.app/Contents/Resources/app/bin':$PATH
 
 eval "$(fzf --zsh)"
 eval "$(zoxide init zsh)"
