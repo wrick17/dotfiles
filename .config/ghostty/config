@@ -97,3 +97,6 @@ keybind = shift+enter=text:\x1b\r
 # \033[3J (erase saved lines) directly to the pty — which both Ghostty and Cmux
 # honour natively — so scrollback is fully wiped in both terminals.
 keybind = cmd+k=text:\x0c
+
+# Almost unlimited scrollback
+scrollback-limit = 200000000

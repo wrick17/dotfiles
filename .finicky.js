@@ -22,6 +22,7 @@ const urls = [
 	"*.microsoftonline.com/*",
 	"www.figma.com/*",
 	"sequoia.gpcloudservice.com/*",
+	"claude.ai/*",
 	"github.com/Sequoia-US/*"
 ];
 
