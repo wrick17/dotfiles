@@ -41,8 +41,6 @@ alias ca="cargo add"
 DISABLE_AUTO_TITLE="true"
 
 _set_tab_title() {
-	# Warp manages its own tab titles via OSC; emitting \e]1; corrupts bootstrap.
-	[[ "$TERM_PROGRAM" == "WarpTerminal" ]] && return
 	echo -ne "\e]1;${PWD##*/}\a"
 }
 precmd_functions+=(_set_tab_title)

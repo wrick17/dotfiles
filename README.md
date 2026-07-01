@@ -19,9 +19,13 @@ brew install fzf zoxide eza fd thefuck stow starship
 cd ~
 git clone git@github.com:wrick17/dotfiles.git
 cd dotfiles
-stow .
+./install.sh
 cd ~
 ```
+
+`install.sh` wraps `stow .` but first backs up any real (non-symlink) file that
+would conflict — plain `stow .` silently skips those and leaves you with a
+stale, unlinked file (this happened to `.zshenv` for months).
 
 ```bash
 touch ~/.hushlogin
@@ -44,7 +48,7 @@ Commands live as scripts in `~/dotfiles/bin/` (on your PATH via `.zshenv`).
 
 **Why scripts, not aliases?** Aliases only load in an interactive shell. Batch `zsh -c` skips aliases — scripts work everywhere.
 
-**Works in:** Warp, iTerm, Terminal, Ghostty, Cursor, and any zsh session. Run `exec zsh` after dotfiles changes.
+**Works in:** iTerm, Terminal, Ghostty, Cursor, and any zsh session. Run `exec zsh` after dotfiles changes.
 
 ### Git
 

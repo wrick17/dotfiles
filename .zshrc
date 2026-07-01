@@ -1,29 +1,6 @@
-# Warp sources .zshrc mid-bootstrap (ZLE off). p10k instant prompt + gitstatus output
-# corrupts bootstrap on new tabs and inactive panes. Defer full init until bootstrap completes.
-if [[ "$TERM_PROGRAM" == "WarpTerminal" && -z "${WARP_BOOTSTRAPPED:-}" && -z "${_ZSHRC_DEFERRED_LOAD:-}" ]]; then
-  typeset -g POWERLEVEL9K_INSTANT_PROMPT=off
-  export PATH="$HOME/dotfiles/bin:/opt/homebrew/bin:$HOME/.local/bin:$PATH"
-
-  _warp_load_full_zshrc() {
-    [[ -n "${WARP_BOOTSTRAPPED:-}" ]] || return
-    precmd_functions=(${precmd_functions:#_warp_load_full_zshrc})
-    _ZSHRC_DEFERRED_LOAD=1
-    source "${ZDOTDIR:-$HOME}/.zshrc"
-    unset _ZSHRC_DEFERRED_LOAD
-    (( ${+functions[zle]} )) && zle reset-prompt
-  }
-  precmd_functions=(_warp_load_full_zshrc ${precmd_functions[@]})
-  return
-fi
-
-# p10k instant prompt is incompatible with Warp; keep it for other terminals only.
-if [[ "$TERM_PROGRAM" == "WarpTerminal" ]]; then
-  typeset -g POWERLEVEL9K_INSTANT_PROMPT=off
-else
-  typeset -g POWERLEVEL9K_INSTANT_PROMPT=quiet
-  if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
-    source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
-  fi
+typeset -g POWERLEVEL9K_INSTANT_PROMPT=quiet
+if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
+  source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
 fi
 
 # Set the directory we want to store zinit and plugins
@@ -41,27 +18,25 @@ source "${ZINIT_HOME}/zinit.zsh"
 # Add in Powerlevel10k
 zinit ice depth=1; zinit light romkatv/powerlevel10k
 
-# Add in zsh plugins
-zinit light Aloxaf/fzf-tab
-zinit light zsh-users/zsh-completions
-zinit light zsh-users/zsh-autosuggestions
-zinit light zsh-users/zsh-syntax-highlighting
+# Zsh plugins — turbo-loaded (zinit `wait` ice) so they load right after the first
+# prompt paints instead of blocking startup. compinit is deferred via atinit onto
+# zsh-syntax-highlighting so zsh-completions' fpath additions land before it runs
+# (same gated once-per-day dump logic as before, just moved).
+zinit wait lucid for \
+  depth"1" \
+    Aloxaf/fzf-tab \
+  depth"1" blockf \
+    zsh-users/zsh-completions \
+  depth"1" atload'!_zsh_autosuggest_start' \
+    zsh-users/zsh-autosuggestions \
+  depth"1" atinit'autoload -Uz compinit; if [[ -n "$HOME/.zcompdump"(#qN.mh+24) ]]; then compinit; else compinit -C; fi; zicdreplay' \
+    zsh-users/zsh-syntax-highlighting
 
 # OMZ git plugin aliases (gco, gp, gst, …) conflict with ~/dotfiles/bin/* scripts.
 # Git completions come from zsh-completions; omit OMZP::git.
+zinit ice wait lucid
 zinit snippet OMZP::command-not-found
 
-# Load completions — gated to once per day for faster startup
-autoload -U compinit
-if [[ -n "$HOME/.zcompdump"(#qN.mh+24) ]]; then
-  compinit
-else
-  compinit -C
-fi
-
-zinit cdreplay -q
-
-# Keybindings and ZLE widgets require ZLE (disabled during Warp bootstrap).
 if [[ -o zle ]]; then
   bindkey -e
   bindkey '^[[A' history-search-backward
@@ -130,7 +105,7 @@ _fzf_comprun() {
 
   case "$command" in
     cd)           fzf --preview 'eza --tree --color=always {} | head -200' "$@" ;;
-    export|unset) fzf --preview "eval 'echo ${}'"         "$@" ;;
+    export|unset) fzf --preview "eval 'echo \${}'"        "$@" ;;
     ssh)          fzf --preview 'dig {}'                   "$@" ;;
     *)            fzf --preview "$show_file_or_dir_preview" "$@" ;;
   esac
@@ -142,8 +117,6 @@ zstyle ':completion:*' list-colors "${(s.:.)LS_COLORS}"
 zstyle ':completion:*' menu no
 zstyle ':fzf-tab:complete:z:*' fzf-preview 'eza -1 --color=always $realpath'
 zstyle ':fzf-tab:complete:code:*' fzf-preview 'eza --tree --level=2 --color=always $realpath'
-
-export PATH="$HOME/dotfiles/bin:/opt/homebrew/bin:$HOME/.local/bin:$PATH"
 
 if [[ -o zle ]]; then
   eval "$(fzf --zsh)"
@@ -161,13 +134,16 @@ export NODE_NO_WARNINGS=1
 # bun completions
 [ -s "$HOME/.bun/_bun" ] && source "$HOME/.bun/_bun"
 
-# Last: drop aliases so ~/dotfiles/bin/* wins in interactive shells.
-for _bin_cmd in \
-	a agent as b ba bb bba bd bda bi bp br bs bt \
-	cat claude doctor \
-	g ga gb gbc gca gc gco glc glg gp gpr gprm gs gsp gst \
-	ll ls lst nvm; do
-	unalias "$_bin_cmd" 2>/dev/null
-done
-unset _bin_cmd
-alias work='lsof -ti:9191 | xargs kill -9 2>/dev/null; lsof -ti:9193 | xargs kill -9 2>/dev/null; cd /Users/burhan.bharmal/ec_ainative_tools_internal/sequoia-cloud/workbench && ([ -d .venv ] || python3.12 -m venv .venv) && git fetch origin && git checkout main && git reset --hard origin/main && .venv/bin/pip install -r requirements.txt --quiet && .venv/bin/python workbench.py'
+# Android Studio's bundled JBR isn't registered with /usr/libexec/java_home, so this
+# path is the only viable JDK for Android builds — but guard it in case this machine
+# doesn't have Android Studio installed.
+_android_studio_jbr="/Applications/Android Studio.app/Contents/jbr/Contents/Home"
+[[ -d "$_android_studio_jbr" ]] && export JAVA_HOME="$_android_studio_jbr"
+unset _android_studio_jbr
+export ANDROID_HOME="$HOME/Library/Android/sdk"
+
+export PATH="$ANDROID_HOME/emulator:$ANDROID_HOME/platform-tools:${JAVA_HOME:+$JAVA_HOME/bin:}$HOME/.antigravity/antigravity/bin:$HOME/Library/Application Support/fnm:$HOME/.npm-global/bin:$HOME/.local/bin:$HOME/.lmstudio/bin:$PATH"
+
+# Dedupe PATH — zinit resets the -U attribute mid-load, so redeclare it here.
+typeset -U path
+path=($path)
