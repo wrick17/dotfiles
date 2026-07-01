@@ -118,11 +118,25 @@ zstyle ':completion:*' menu no
 zstyle ':fzf-tab:complete:z:*' fzf-preview 'eza -1 --color=always $realpath'
 zstyle ':fzf-tab:complete:code:*' fzf-preview 'eza --tree --level=2 --color=always $realpath'
 
+# Cache tool-generated init scripts (fzf/zoxide/fnm each fork+exec on every startup
+# otherwise) — regenerate only when the binary itself is newer than the cache.
+_zsh_cache_dir="${XDG_CACHE_HOME:-$HOME/.cache}/zsh-init"
+mkdir -p "$_zsh_cache_dir"
+_cache_eval() {
+  local name=$1 bin=$2 cache="$_zsh_cache_dir/$1.zsh" bin_path
+  shift 2
+  bin_path=$(command -v "$bin") || return
+  if [[ ! -s "$cache" || "$bin_path" -nt "$cache" ]]; then
+    "$@" > "$cache" 2>/dev/null
+  fi
+  source "$cache"
+}
+
 if [[ -o zle ]]; then
-  eval "$(fzf --zsh)"
+  _cache_eval fzf fzf fzf --zsh
 fi
-eval "$(zoxide init zsh)"
-eval "$(fnm env --use-on-cd)"
+_cache_eval zoxide zoxide zoxide init zsh
+_cache_eval fnm fnm fnm env --use-on-cd
 
 source "${HOME}/.alias.zsh"
 source "${HOME}/.secrets.zsh"
