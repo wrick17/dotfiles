@@ -49,3 +49,4 @@ alias p="python"
 
 alias sis="sis -e boilerplate"
 alias run="run -e boilerplate"
+alias as="agg start"
