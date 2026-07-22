@@ -280,6 +280,8 @@ alias p="python"
 alias doctor="bunx -y react-doctor@latest . --verbose --no-ami -y"
 
 alias claude="claude --dangerously-skip-permissions"
+alias cc="claude --dangerously-skip-permissions"
+alias co="codex"
 
 
 alias j="jj"                         # jj

@@ -23,7 +23,8 @@ const urls = [
 	"www.figma.com/*",
 	"sequoia.gpcloudservice.com/*",
 	"claude.ai/*",
-	"github.com/Sequoia-US/*"
+	"github.com/Sequoia-US/*",
+	"https://teams.public.onecdn.static.microsoft/*"
 ];
 
 export default {
