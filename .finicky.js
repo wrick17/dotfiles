@@ -24,7 +24,8 @@ const urls = [
 	"sequoia.gpcloudservice.com/*",
 	"claude.ai/*",
 	"github.com/Sequoia-US/*",
-	"https://teams.public.onecdn.static.microsoft/*"
+	"claude.com/cai/oauth/*",
+	"teams.public.onecdn.static.microsoft/*"
 ];
 
 export default {
