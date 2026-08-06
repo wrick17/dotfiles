@@ -29,7 +29,7 @@ const urls = [
 ];
 
 export default {
-	defaultBrowser: "Orc",
+	defaultBrowser: "Dia",
 	options: {
 		checkForUpdates: false,
 		logRequests: false,
