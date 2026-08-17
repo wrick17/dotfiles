@@ -29,7 +29,7 @@ const urls = [
 ];
 
 export default {
-	defaultBrowser: "Dia",
+	defaultBrowser: "Helium",
 	options: {
 		checkForUpdates: false,
 		logRequests: false,
