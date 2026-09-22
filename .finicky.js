@@ -49,5 +49,14 @@ export default {
 				return newUrl;
 			},
 		},
+		{
+			match: "teams.public.onecdn.static.microsoft/*",
+			url: (url) => {
+				const newUrl = decodeURIComponent(
+					url.search.replace("?url=", ""),
+				).split("&locale=en-us&dest=https://teams.microsoft.com")[0];
+				return newUrl;
+			},
+		},
 	],
 };
