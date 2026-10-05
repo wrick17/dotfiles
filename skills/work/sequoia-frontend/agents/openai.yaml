@@ -1,0 +1,4 @@
+interface:
+  display_name: "Sequoia Frontend"
+  short_description: "Set up, run, and build Sequoia frontend"
+  default_prompt: "Use $sequoia-frontend to set up, run, troubleshoot, or implement this Sequoia frontend request."

@@ -37,3 +37,31 @@ source ~/.zshrc
 ```bash
 p10k configure
 ```
+
+## AI instructions and skills
+
+`ai/global.md` holds shared rules. `ai/agents.md` and `ai/claude.md` add runtime rules; the `work.*.md` files add work policies, and `personal.agents.md` selects the personal Codex setup. The installed `~/.codex/AGENTS.md` points to `ai/work.agents.md`, and `~/.claude/CLAUDE.md` imports `ai/work.claude.md`, so the rules come from this repo.
+
+Codex files explicitly require reading their linked instructions. Claude files use native `@` imports. When installing a profile, keep the source hierarchy together and point the installed instruction file at the profile's absolute path in this repo.
+
+Skills are grouped into `skills/common`, `skills/work`, and `skills/personal`. `sequoia-frontend` is work only. Personal setups use common + personal; this machine uses common + work. Plugin-managed skills keep their existing installations.
+
+Link only the shared skills directory into your home with Stow:
+
+```sh
+stow --dir "$HOME/dotfiles" --target "$HOME" --ignore '^(?!skills(?:/|$)).*' .
+```
+
+The agent skill directories link to the relevant entries under `~/skills/common` or `~/skills/work`. Upstream checkouts stay in `skills/.sources`, outside the parent Git history, so their Git metadata and local edits are preserved. `~/skills/update` still updates those existing checkouts.
+
+On another machine, recreate these source checkouts before using the source-backed common skills:
+
+```sh
+mkdir -p "$HOME/dotfiles/skills/.sources"
+git clone git@github.com:cursor/plugins.git "$HOME/dotfiles/skills/.sources/cursor-plugins"
+git clone git@github.com:DietrichGebert/ponytail.git "$HOME/dotfiles/skills/.sources/ponytail"
+git clone git@github.com:mattpocock/skills.git "$HOME/dotfiles/skills/.sources/mattpocock-skills"
+git clone https://github.com/tt-a1i/archify.git "$HOME/dotfiles/skills/.sources/archify"
+```
+
+The current upstream checkouts include local edits. Those edits remain in the local source repositories and need their own backup or publication to transfer to another machine.

@@ -1,2 +1,5 @@
 .secrets.zsh
 .DS_Store
+
+# Keep upstream skill repositories and their local edits independent.
+/skills/.sources/

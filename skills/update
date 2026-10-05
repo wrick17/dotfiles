@@ -1,0 +1,33 @@
+#!/bin/sh
+set -eu
+
+update_checkout() {
+  repo=$1
+  expected_remote=$2
+
+  [ "$(rtk git -C "$repo" remote get-url origin)" = "$expected_remote" ] || {
+    echo "Refusing unexpected origin: $repo" >&2
+    exit 1
+  }
+  [ "$(rtk git -C "$repo" branch --show-current)" = main ] || {
+    echo "Refusing non-main branch: $repo" >&2
+    exit 1
+  }
+
+  rtk git -C "$repo" fetch origin main
+  rtk git -C "$repo" merge --ff-only origin/main
+}
+
+update_checkout /Users/pratyush.poddar/skills/.sources/cursor-plugins git@github.com:cursor/plugins.git
+update_checkout /Users/pratyush.poddar/skills/.sources/ponytail git@github.com:DietrichGebert/ponytail.git
+update_checkout /Users/pratyush.poddar/skills/.sources/mattpocock-skills git@github.com:mattpocock/skills.git
+update_checkout /Users/pratyush.poddar/skills/.sources/archify https://github.com/tt-a1i/archify.git
+
+printf '%s\n' \
+  'Plugin updates were not run.' \
+  'Claude Code supports:' \
+  '  rtk claude plugin marketplace update ponytail' \
+  '  rtk claude plugin update ponytail@ponytail --scope user --yes' \
+  'Codex supports only marketplace refresh:' \
+  '  rtk codex plugin marketplace upgrade ponytail' \
+  'The current Codex CLI has no plugin update command; use its Plugins UI to update ponytail@ponytail.'
