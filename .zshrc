@@ -144,3 +144,6 @@ export NODE_NO_WARNINGS=1
 
 # bun completions
 [ -s "$HOME/.bun/_bun" ] && source "$HOME/.bun/_bun"
+
+# T3 Code imports this PATH. The gh shim pins only native T3 app calls.
+export PATH="$HOME/.config/t3-gh/bin:$PATH"

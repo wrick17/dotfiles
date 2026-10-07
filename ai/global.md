@@ -90,6 +90,13 @@ Shared rules for Codex and Claude Code in work and personal setups.
 - Ask the user to authenticate when needed.
 - Before finishing user-browser work, close agent-created tabs and verify the task group is gone. Preserve the user's tabs and any task tabs they explicitly ask to keep.
 
+## Visual presentation
+
+- Use T3 Code's visualize tools whenever presenting findings, reporting results, or summarizing work. Also use them for any explanation, plan, comparison, or other response where a visual would make the information easier to understand.
+- Use the visualization tools exposed by the live `t3-code` MCP catalog. With the current tools, build self-contained HTML, check it with `html_preview`, and present it inline with `html_render` before the final reply.
+- Choose the simplest useful visual, such as a table, chart, diagram, or interactive explanation. Make the visual carry the information; keep accompanying prose brief and add only what the visual does not already say. Follow the Diagrams rules when applicable.
+- If the visualization tools are unavailable, state the limitation and provide the information in the clearest available format. Honor any format explicitly requested by the user.
+
 ## Diagrams
 
 - Every main agent and delegated worker must load and use `$archify` for architecture, infrastructure, cloud, security, network topology, workflow, sequence, data-flow, lifecycle, state-machine, pipeline, lineage, and Mermaid-conversion requests.
@@ -101,7 +108,7 @@ Shared rules for Codex and Claude Code in work and personal setups.
 
 - For multi-step work, use the tasks feature when available. Keep completed and future work coarse; expand only active work.
 - Give brief updates at meaningful milestones: outcome, blocker, decision, or next step.
-- Keep small plans and recommendations in chat.
+- Keep small plans and recommendations inline in chat, following the Visual presentation rules.
 - When a substantial report or implementation plan needs an artifact, create dark-mode HTML in a temporary directory and upload it with `bunx postplan upload <file>.html`.
 - For every Postplan, load and apply `$pstack:technical-writing` and `$pstack:unslop`.
 - Every code block in a plan or Postplan must have syntax highlighting for its language. Specify the language on Markdown code fences and render actual syntax highlighting in HTML. Verify that highlighting is visible and readable in the final rendered page.

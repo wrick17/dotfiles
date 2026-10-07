@@ -1,0 +1,19 @@
+#!/bin/sh
+# Pin T3 Code's native GitHub calls without changing terminal or agent accounts.
+# T3 imports PATH from the login shell, but does not import its GitHub tokens.
+case "$(/bin/ps -p "$PPID" -o comm=)" in
+  */T3\ Code*.app/Contents/MacOS/T3\ Code*)
+    # Read the named account from the existing Keychain. Never save its token.
+    t3_gh_token=$(/usr/bin/env -u GH_TOKEN -u GITHUB_TOKEN -u GH_DEBUG \
+      GH_CONFIG_DIR="$HOME/.config/gh" \
+      /opt/homebrew/bin/gh auth token --hostname github.com \
+      --user pratyush-poddar_seq) || exit "$?"
+    if [ -z "$t3_gh_token" ]; then
+      echo 'T3 Code: no GitHub credential for pratyush-poddar_seq.' >&2
+      exit 1
+    fi
+    export GH_TOKEN="$t3_gh_token" GITHUB_TOKEN="$t3_gh_token"
+    unset t3_gh_token GH_DEBUG
+    ;;
+esac
+exec /opt/homebrew/bin/gh "$@"
