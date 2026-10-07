@@ -92,9 +92,9 @@ Shared rules for Codex and Claude Code in work and personal setups.
 
 ## Visual presentation
 
-- Use T3 Code's visualize tools whenever presenting findings, reporting results, or summarizing work. Also use them for any explanation, plan, comparison, or other response where a visual would make the information easier to understand.
-- Use the visualization tools exposed by the live `t3-code` MCP catalog. With the current tools, build self-contained HTML, check it with `html_preview`, and present it inline with `html_render` before the final reply.
-- Choose the simplest useful visual, such as a table, chart, diagram, or interactive explanation. Make the visual carry the information; keep accompanying prose brief and add only what the visual does not already say. Follow the Diagrams rules when applicable.
+- Use visuals when they make an explanation, plan, comparison, or set of findings easier to understand. Keep simple answers and routine updates in prose; choose visuals based on their value to the reader, not the response type.
+- When a visual is useful, use the visualization tools exposed by the live `t3-code` MCP catalog. With the current tools, build self-contained HTML, check it with `html_preview`, and present it inline with `html_render` before the final reply.
+- Use diagrams to explain relationships, structure, and flows, and charts to show data, comparisons, and trends. Choose the simplest format that makes the information easy to understand and visualize; use tables or interactive explanations when they fit better. Make every visual visually appealing with clear labels, readable typography, balanced spacing, and accessible contrast. Make the visual carry the information; keep accompanying prose brief and add only what the visual does not already say. Follow the Diagrams rules when applicable.
 - If the visualization tools are unavailable, state the limitation and provide the information in the clearest available format. Honor any format explicitly requested by the user.
 
 ## Diagrams
