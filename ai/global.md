@@ -99,10 +99,9 @@ Shared rules for Codex and Claude Code in work and personal setups.
 
 ## Diagrams
 
-- Every main agent and delegated worker must load and use `$archify` for architecture, infrastructure, cloud, security, network topology, workflow, sequence, data-flow, lifecycle, state-machine, pipeline, lineage, and Mermaid-conversion requests.
-- Also use Archify when one of those diagrams would make a substantial technical explanation or report materially clearer.
-- For every HTML report, HTML document, or Postplan, assess whether an architecture diagram would help. When it would, generate it with Archify and include it in the artifact.
-- Follow Archify's validation and delivery checks. Use another diagram format only when the user explicitly requests it or Archify is unavailable.
+- Choose the diagram format or visualization pattern that best fits the scenario. Archify is optional; use `$archify` when its diagram workflow fits the task, and use other formats or patterns when they fit better.
+- For every HTML report, HTML document, or Postplan, assess whether an architecture diagram would help. When it would, include it in the artifact using the chosen format.
+- When using Archify, follow its validation and delivery checks. Honor any visualization format explicitly requested by the user.
 
 ## Progress and deliverables
 
