@@ -19,10 +19,12 @@ The Sequoia apps workspace contains independent sibling Git repositories, not on
 | `compos-planning-frontend` | `planning` | Planning routes start at `src/Planning.js`; feature-first code lives below `src/modules`. Read `CLAUDE.md`. |
 | `benefitos-benefits-frontend` | `px` | PX app routing is under `src/App/AllRoutes`; many product modules sit below `src/modules`. |
 | `compos-totalrewards-frontend` | `tr` | Total Rewards routes start at `src/TotalRewards.js`; nested modules own sub-routes. |
-| `serviceos-s1service-frontend` | `uwp` | ServiceOS routes start at `src/UWP.js`; module and widget code coexist. Read `CLAUDE.md`. |
+| `serviceos-s1service-frontend` | `s1` in fresh init; existing checkouts may use `uwp` | ServiceOS routes start at `src/UWP.js`; module and widget code coexist. Read `CLAUDE.md`. |
 | `benefitos-wellbeing-frontend` | `wellbeing` | Wellbeing route root is `src/WellbeingApp.js`; versioned admin modules coexist. |
 
 Each repo owns its `package.json`, `bun.lock`, `config.js`, build/test configuration, Git state, and deployment contract. Run Git, install, format, lint, test, and build commands inside the actual child repo.
+
+Fresh `agg init` includes the core fleet above except optional PeopleLoop. Analytics, `Sequoia-Engineering/analytics-all-frontend`, is also optional and uses `analytics` with memorable names. PeopleLoop comes from `Sequoia-US/pl-ui` on `main`; core repositories and Analytics initialize on `dev`. Existing folder names and approved branches remain authoritative. Full-name init uses GitHub repository names instead of these short folders.
 
 ## Composition boundaries
 

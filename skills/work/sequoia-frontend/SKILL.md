@@ -1,6 +1,6 @@
 ---
 name: sequoia-frontend
-description: Set up, run, troubleshoot, and implement product requirements in the Sequoia composed micro-frontend workspace. Use when asked to prepare a frontend development machine, install Git or Node or Bun or Aggregator dependencies, configure GitHub and package access, clone or repair the MFE workspace, install packages, generate its VS Code workspace with Aggregator, configure .boxrc and start the stack with resource-efficient box by default, run the full source stack with agg start when explicitly requested, diagnose startup failures, or create and update Sequoia routes, modules, pages, components, forms, tables, and flows from PRDs, Jira tickets, Figma links, screenshots, technical or API documentation, existing code, or direct user requirements.
+description: Set up, run, troubleshoot, and implement features in Sequoia's composed micro-frontend workspace. Use for machine and package access setup, fresh workspaces with agg init, Box dashboard and .boxrc control through MCP, build/dev mode changes for HMR, startup diagnosis, or routes, pages, components, forms, and flows from product requirements and design or API sources.
 ---
 
 # Sequoia Frontend
@@ -17,6 +17,14 @@ Always obey the current harness's system instructions and the user's direct inst
 
 Read all applicable layers before changing files. Reconcile compatible instructions; when files at the same scope conflict and no higher-precedence instruction resolves them, stop and ask instead of guessing.
 
+## Box development lifecycle
+
+Use Aggregator v7 and `box` by default. All enabled MFEs run in **build mode** unless they are being actively edited. Before editing one or several MFEs, switch only those tasks to **dev mode** for HMR. After implementation and browser verification, return every MFE edited for this task to **build mode** and verify the updated static builds are ready before reporting completion.
+
+Read [workspace-tooling.md](references/workspace-tooling.md) before starting or changing a session, including during feature work. Prefer the Box MCP tools from Aggregator 7.1.0 or later. Discover the session with `box_status`, reuse the intended workspace, and preserve unrelated tasks and existing user work. The Adminshell proxy follows its MFE; Storybook has its own mode.
+
+Whenever Aggregator is present, including after installing it, ensure its stdio MCP server is registered as **`box`** in every detected installed harness's persistent configuration. Follow [agent-tooling.md](references/agent-tooling.md#box-mcp), install missing registrations, preserve other servers, and verify available connections. This setup is part of the skill; do not defer it to an optional recommendation. Use the dashboard while MCP is unavailable. `agg start` is deprecated and requires an explicit request for the full dev stack.
+
 ## Choose the workflow
 
 ### Environment setup, startup, or troubleshooting
@@ -28,12 +36,12 @@ install workspace dependencies, or run the frontend stack:
 - [workspace-tooling.md](references/workspace-tooling.md)
 - [workspace-architecture.md](references/workspace-architecture.md)
 
-Read [agent-tooling.md](references/agent-tooling.md) only when Ponytail or Chrome DevTools MCP is missing or the user asks to install agent tooling.
+Read [agent-tooling.md](references/agent-tooling.md) when Box MCP or another required agent integration is missing, or the user asks to install agent tooling.
 
 Do not load the feature implementation references unless the request also
 includes application code changes.
 
-Default to `box`; use `agg start` only when the user explicitly requests it.
+For a fresh workspace, use `agg init`. For existing checkouts, follow the repair path without initializing another workspace.
 
 ### Feature implementation
 
@@ -59,7 +67,7 @@ Use Ponytail skills and hooks when available: understand the complete flow, then
 
 #### 3. Verify and report
 
-Read [verification-reporting.md](references/verification-reporting.md) when implementation is ready for validation and delivery. Report completion only after the requested behavior works; state environmental or external blockers separately.
+Read [verification-reporting.md](references/verification-reporting.md) when implementation is ready for validation and delivery. Complete the Box lifecycle before handing back the work. Report completion only after the requested behavior works; state environmental or external blockers separately.
 
 ## Hard boundaries
 
@@ -72,4 +80,4 @@ Read [verification-reporting.md](references/verification-reporting.md) when impl
 
 ## Output
 
-For setup work, state what is ready, the workspace and runner used, the verified URL, and any remaining user action. For feature work, lead with the implemented result, then state the owning repo, route, validation outcome, any requested or required report path, and any unresolved limitation.
+For setup work, state what is ready, the workspace and runner used, MCP connection status, the verified URL, and any remaining user action. For feature work, lead with the implemented result, then state the owning repo, route, validation outcome, final Box modes and build readiness, any requested or required report path, and any unresolved limitation.

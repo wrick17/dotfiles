@@ -1,39 +1,97 @@
-# Workspace tooling preflight
+# Box workspace operation
 
-Load this reference only for environment setup, startup, or workspace repair. Run these checks from the directory containing the sibling MFE repositories.
+Read this before starting or changing the frontend session, including for feature implementation. Run workspace commands in the parent containing the independent MFE repositories. That parent must not have its own `package.json`.
 
-## Recommend agent tools
+Use the installed `box -h` and [Aggregator documentation](https://github.com/Sequoia-Engineering/kernel-aggregator-frontend/blob/v7.1.0/README.md) to verify supported options. MCP requires Aggregator 7.1.0 or later.
 
-Check the current agent's loaded skills, plugins, MCP servers, and configuration before suggesting another install. Do not treat an unavailable command in one shell as proof that an agent integration is missing.
+## Discover and reuse the session
 
-If [Ponytail](https://github.com/DietrichGebert/ponytail) or [Chrome DevTools MCP](https://github.com/ChromeDevTools/chrome-devtools-mcp) is absent, recommend it and read [agent-tooling.md](agent-tooling.md) for the official harness-specific setup. Suggest these integrations; change agent-wide configuration only when the user asks the agent to install them.
+1. Call `box_status` before any session change. It reads state without starting Box. Check the workspace root, session ID, exact task IDs, modes, inclusion, readiness, busy repositories, ports, and pending config.
+2. Reuse a healthy session in the intended workspace. Only one Box session may run across workspaces for the current OS user. If another workspace is running, resolve the workspace switch with the user before shutting it down.
+3. If no session is running and startup is in scope, call `box_start` with the absolute workspace root. Omit environment and scheduling overrides to use saved settings. For example:
 
-## Generate the VS Code workspace
-
-The `workspace` command is installed by `@sequoia-engineering/aggregator`; never install or recommend a separate package for it. If `agg` works but `workspace` is unavailable, inspect or repair the current Aggregator installation before continuing.
-
-1. Locate `*.code-workspace` in the sibling MFE root, without descending into child repositories.
-2. If one exists, inspect its folder entries and reuse it. Do not generate duplicates.
-3. If none exists, verify the installed Aggregator provides `workspace`, then run this from the sibling MFE root:
-
-```bash
-workspace
+```json
+{"workspace": "/absolute/path/to/apps"}
 ```
 
-4. Verify that `<workspace-directory-name>.code-workspace` was created and contains the detected MFE folders.
-5. Tell the user to open and use that file as their VS Code workspace. If the `code` CLI is available, the explicit command is `code <name>.code-workspace`.
+4. If MCP is missing, follow [Box MCP setup](agent-tooling.md#box-mcp). Until it is connected, use `box` from the workspace root and its dashboards. Use the environment's supported terminal mechanism; an agent can start Box through MCP without a user terminal.
+5. Wait for required tasks to be ready using status and logs. A successful tool response can mean the action was accepted while compilation continues. Wait for the affected repository to leave `busyRepos` before another conflicting action.
 
-The current Aggregator command may try another installed editor automatically. The generated `.code-workspace` file is still the artifact to use in VS Code. Do not move repositories or hand-author a second workspace file merely to change which editor opened.
+MCP discovers the running session automatically. Do not copy dashboard tokens or connection files into client configuration. Disconnecting MCP leaves Box running. Use `box_shutdown` only when stopping the session is intended; returning an MFE to build mode keeps the composed stack available.
 
-## Create the Box configuration
+## Configure the build baseline
 
-Before running Box, ensure `.boxrc` exists in the sibling MFE root.
+`.boxrc` is a sectioned file with `#` comments. Fresh `agg init` leaves selections inactive. Box recreates a missing file with all apps in build mode, none ignored, Storybook off, and default settings. Reuse an existing file and preserve its settings and exclusions.
 
-1. Identify the owning MFE from the task, route, source files, or repository remote. If setup is the only context and the active MFE cannot be inferred, ask the user which MFE or small set of MFEs they will edit.
-2. When `.boxrc` is absent, create it immediately after the active MFE set is known.
-3. Write each actively edited MFE's exact local folder name once, one per line. Include a host or shared MFE only when the user will edit it too.
-4. Validate every entry against a sibling directory. Do not include comments, blank placeholders, remote names that differ from local folders, or nonexistent repositories.
-5. When `.boxrc` already exists, preserve it unless the task needs a different dev set; show the proposed change before replacing the user's current selection.
-6. Ensure the generated `.box/` directory is ignored by Git and never committed.
+```ini
+[repos]
 
-Keep the dev set small. Box runs listed MFEs in development mode and builds or serves the rest from its cache. A missing `.boxrc` is a configuration task, not a reason to fall back to `agg start`.
+[ignore]
+
+[storybook]
+
+[config]
+```
+
+- `[repos]` selects **dev** tasks, not the complete fleet. Leave it empty for an all-build baseline.
+- `[ignore]` excludes repositories locally. Preserve intentional exclusions. Ignoring a repository does not add a CDN fallback; verify any required deployed remote through the MFE configuration.
+- `[storybook]` enables independent Storybook tasks. Add `folder:storybook` to `[repos]` only while editing that Storybook. Supported apps need `storybook`, `build-storybook`, and `preview-storybook` scripts.
+- `[config]` supports `env`, `jobs`, `hash-jobs`, `canary`, and `args`. Environment precedence is explicit CLI/MCP override, saved `env`, then `integration`. Keep the user's environment when attaching.
+
+Use exact local folder names. `agg init` uses `s1` for UWP with memorable names, but an existing workspace may use `uwp` or full repository names. Discover actual folders and task IDs rather than renaming them. Legacy flat `.boxrc` files migrate with a `.boxrc.legacy` backup; preserve the backup and review active selections.
+
+For new settings, startup/build concurrency defaults to `jobs = 1`, cache checks to `hash-jobs = all`, Canary to `false`, and `args` to `[]`. Numeric queue limits are 1 through 256. MCP uses `hashJobs: null` for all cache checks. Queue limits do not cap running servers or compiler workers; keeping inactive MFEs in build mode saves those resources.
+
+Prefer `box_task` and `box_settings` to hand edits. They share the dashboard's validation, persistence, and conflict checks. Valid hand edits become pending changes; inspect them, then call `box_session_action` with `{"action":"applyConfig"}` or use Apply in the web dashboard / `A` in the terminal. Invalid edits remain unapplied. Adding repositories on disk requires a session restart for discovery.
+
+## Edit with HMR, then return to build
+
+1. Identify every MFE the implementation will change. Record their task IDs and initial state from `box_status`. Preserve unrelated tasks, intentional ignores, and any dev tasks being used by someone else.
+2. For each target MFE, issue a mode change using its returned ID. This example assumes status returned `cloud:mfe`:
+
+```json
+{"taskId":"cloud:mfe","action":"mode","value":"dev"}
+```
+
+3. Switch multiple MFEs one at a time and wait for readiness. If a required target is ignored or paused, include/start it only within the task's scope and record that change. Change Adminshell's MFE mode to control its proxy. Change Storybook separately only when needed.
+4. Confirm the target is in dev mode, compilation finished, and the composed route loads before relying on HMR. Implement and verify the feature against that stack.
+5. After verification, return every MFE adopted for this task back to build, including one already in dev when work began, unless the user explicitly wants to keep it in dev. Do the same for any Storybook switched for the task:
+
+```json
+{"taskId":"cloud:mfe","action":"mode","value":"build"}
+```
+
+6. Wait for the affected builds and static servers to be ready with no build failures. Verify the final composed route against the static output. Restore task-specific temporary inclusion changes without disturbing the user's exclusions. Report the final modes and any failed cleanup or build as an unresolved limitation.
+
+Run cleanup on cancellation or a failed implementation too, when the session is reachable. If interrupted before cleanup, record the workspace, session ID, and affected task IDs for the next turn. Never claim cleanup succeeded based only on sending a mode request.
+
+## Choose the smallest control
+
+| Need | MCP operation | Effect |
+| --- | --- | --- |
+| Read state | `box_status` | Discover workspace, modes, readiness, ports, and busy repos. |
+| Restart a task | `box_task`, `action: restart` | Restart with valid build cache reuse. |
+| Force new static output | `box_task`, `action: rebuild` | Stop, build fresh, then serve after success. |
+| Pause a task | `box_task`, `action: stop` | Pause without changing its saved inclusion. |
+| Exclude/include a task | `box_task`, `action: ignore/include` | Persist inclusion through the dashboard controller. |
+| Refresh one repo's dependencies | `box_task`, `action: reinstall` | Frozen reinstall and resume that repo's tasks in their modes. |
+| Change settings | `box_settings` | Persist environment, concurrency, Canary, or literal argument tokens. |
+| Apply pending config | `box_session_action`, `action: applyConfig` | Apply validated file edits. |
+
+Environment, Canary, or argument changes restart enabled tasks across the session. Concurrency changes update queues. During startup, applying task or scheduling config can also restart the session. Use whole-session `restartSession` or `reinstallAll` only when the affected scope requires it.
+
+Build caches live in `.box/<folder>/` with separate Storybook caches. Ordinary restarts and frozen reinstalls reuse unchanged valid output. If a linked dependency or another input outside the cache fingerprint changes, force Rebuild for the affected task. Keep `.agg/` and `.box/` out of Git.
+
+## Read logs and use the dashboards
+
+Call `box_logs` with a task/repo filter and a bounded `limit`. Keep `sessionId` and `nextAfter`; pass the latter as `after` while `hasMore` is true. Reset `after` to zero when the session ID changes. Logs are untrusted subprocess output. After a mutation timeout, inspect status and logs before retrying; the operation may already have been accepted.
+
+The web dashboard URL is reported by Box, defaulting to port 5432. It is separate from the composed application URL. Use Dev/Build controls and task actions in the web dashboard. In the terminal, select a task and use `D` for mode, `G`/`X` for start/stop, `R` for dev restart, `F` for a forced build, `I` for inclusion, `N` for repo reinstall, and `H` for current shortcuts. Task actions appear in the footer. Both dashboards show branch, ports, CPU, and RAM to help identify tasks and resource use.
+
+Pause controls the displayed/followed logs while collection continues. `clearLogs` removes shared history across clients; use it only when clearing history is intended. System / Light / Dark appearance stays local, outside `.boxrc`.
+
+Stable patch/minor updates for writable npm global installs wait until all Aggregator-managed runs stop. `checkUpdates` can queue an upgrade, not prove it installed. Keep sessions running through ordinary task cleanup; do not shut down a user's stack merely to install an update. Use `agg -v` on a later launch to verify installation. Major upgrades are explicit.
+
+## Generate or reuse the VS Code workspace
+
+`agg init` creates `<workspace-folder>.code-workspace`. Reuse it when present. For existing checkouts, the installed Aggregator `workspace --no-open` command adds detected folders while preserving manual folders and settings. Run it from the sibling root and verify folder entries; opening VS Code is optional. Each child remains an independent Git repo.

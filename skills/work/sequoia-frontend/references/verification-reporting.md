@@ -11,13 +11,17 @@ From the owning repo:
 
 For composed UI work:
 
-- Use Chrome DevTools MCP when available; otherwise use the provider-equivalent attached-browser DevTools MCP. Reuse the existing tab.
+- Use the current harness's preferred browser integration. Use the user's browser when explicitly requested and preserve their tabs.
 - Do not navigate to localhost until the dev server is fully up and every MFE has finished compiling.
 - Verify the real composed route, direct refresh, navigation, visible states, responsive layout, keyboard path, console, and relevant network requests.
 - When a visual source exists, compare the rendered page with it at the intended viewport. Check computed styles when token or layout fidelity is in question.
 - Do not substitute a standalone mock page for composed verification.
 
 Report completion only after the requested behavior works. State any backend, permission, data, or environment blocker separately from frontend fidelity.
+
+## Return the edited tasks to build mode
+
+After dev-mode browser verification, finish [the Box lifecycle](workspace-tooling.md#edit-with-hmr-then-return-to-build). Switch the MFEs and any Storybook adopted for this work back to build, wait for successful static build/server readiness, and check the composed route against the resulting output. Preserve unrelated session state and leave Box running unless stopping it was requested. Report any failed build or incomplete mode cleanup instead of declaring the workspace ready.
 
 ## Generate a report when requested or required
 
@@ -36,6 +40,7 @@ Include:
 - Eureka, Tailwind, host-contract, and existing-code reuse decisions;
 - API, data, permission, feature-flag, i18n, and analytics wiring;
 - formatter, lint, tests, build, and browser-verification results;
+- Box workspace, affected task IDs, final modes, static build readiness, and MCP setup/reload status when relevant;
 - source coverage and, when a visual reference exists, fidelity, responsive, theme, accessibility, console, and network evidence;
 - deviations from the contract, known limitations, skipped work, and follow-ups.
 

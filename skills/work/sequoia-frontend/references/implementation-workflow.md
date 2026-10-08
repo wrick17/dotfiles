@@ -14,6 +14,10 @@ Trace the composed path before editing:
 
 If discovery contradicts the confirmed implementation contract, stop, show the evidence, and ask the user to amend the contract before continuing.
 
+## Prepare the HMR session
+
+Before editing, follow [workspace-tooling.md](workspace-tooling.md#edit-with-hmr-then-return-to-build). Discover or start Box in the intended workspace and switch only the owning MFEs to dev mode. Wait for readiness before browser work. Track the tasks this work adopts so they can return to build mode after verification, including on failure or cancellation. Read-only discovery alone does not require a mode change.
+
 ## Reuse before creating
 
 Use this order:
