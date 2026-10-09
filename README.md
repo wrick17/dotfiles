@@ -56,7 +56,7 @@ ln -s "$HOME/dotfiles/ai/codex.hooks.json" "$HOME/.codex/hooks.json"
 
 If that file already exists, merge the `PreToolUse` entry from `ai/codex.hooks.json` into it. Restart Codex after installing the hook. This keeps the existing global instruction import in place. Verify the installation with `rtk --version` and `rtk gain`.
 
-`ai/global.md` holds shared rules. `ai/agents.md` and `ai/claude.md` add runtime rules; the `work.*.md` files add work policies, and `personal.agents.md` selects the personal Codex setup. The installed `~/.codex/AGENTS.md` points to `ai/work.agents.md`, and `~/.claude/CLAUDE.md` imports `ai/work.claude.md`, so the rules come from this repo.
+`ai/global.md` holds shared rules. `ai/agents.md` and `ai/claude.md` add runtime rules. `ai/work.md` holds shared work policies; `work.agents.md` and `work.claude.md` import it alongside their runtime instructions. `personal.agents.md` selects the personal Codex setup. The installed `~/.codex/AGENTS.md` points to `ai/work.agents.md`, and `~/.claude/CLAUDE.md` imports `ai/work.claude.md`, so the rules come from this repo.
 
 Codex files explicitly require reading their linked instructions. Claude files use native `@` imports. When installing a profile, keep the source hierarchy together and point the installed instruction file at the profile's absolute path in this repo.
 

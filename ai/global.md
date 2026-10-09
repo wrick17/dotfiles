@@ -92,17 +92,16 @@ Shared rules for Codex and Claude Code in work and personal setups.
 
 ## Visual presentation
 
-- Use T3 Code's visualize tools whenever presenting findings, reporting results, or summarizing work. Also use them for any explanation, plan, comparison, or other response where a visual would make the information easier to understand.
-- Use the visualization tools exposed by the live `t3-code` MCP catalog. With the current tools, build self-contained HTML, check it with `html_preview`, and present it inline with `html_render` before the final reply.
-- Choose the simplest useful visual, such as a table, chart, diagram, or interactive explanation. Make the visual carry the information; keep accompanying prose brief and add only what the visual does not already say. Follow the Diagrams rules when applicable.
+- Use visuals when they make an explanation, plan, comparison, or set of findings easier to understand. Keep simple answers and routine updates in prose; choose visuals based on their value to the reader, not the response type.
+- When a visual is useful, use the visualization tools exposed by the live `t3-code` MCP catalog. With the current tools, build self-contained HTML, check it with `html_preview`, and present it inline with `html_render` before the final reply.
+- Use diagrams to explain relationships, structure, and flows, and charts to show data, comparisons, and trends. Choose the simplest format that makes the information easy to understand and visualize; use tables or interactive explanations when they fit better. Give every visual report, inline visual, and Postplan a unique, visually striking design suited to its content, with clear labels, readable typography, balanced spacing, and accessible contrast. Make the visual carry the information; keep accompanying prose brief and add only what the visual does not already say. Follow the Diagrams rules when applicable.
 - If the visualization tools are unavailable, state the limitation and provide the information in the clearest available format. Honor any format explicitly requested by the user.
 
 ## Diagrams
 
-- Every main agent and delegated worker must load and use `$archify` for architecture, infrastructure, cloud, security, network topology, workflow, sequence, data-flow, lifecycle, state-machine, pipeline, lineage, and Mermaid-conversion requests.
-- Also use Archify when one of those diagrams would make a substantial technical explanation or report materially clearer.
-- For every HTML report, HTML document, or Postplan, assess whether an architecture diagram would help. When it would, generate it with Archify and include it in the artifact.
-- Follow Archify's validation and delivery checks. Use another diagram format only when the user explicitly requests it or Archify is unavailable.
+- Choose the diagram format or visualization pattern that best fits the scenario. Archify is optional; use `$archify` when its diagram workflow fits the task, and use other formats or patterns when they fit better.
+- For every HTML report, HTML document, or Postplan, assess whether an architecture diagram would help. When it would, include it in the artifact using the chosen format.
+- When using Archify, follow its validation and delivery checks. Honor any visualization format explicitly requested by the user.
 
 ## Progress and deliverables
 
