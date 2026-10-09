@@ -80,7 +80,7 @@ Run cleanup on cancellation or a failed implementation too, when the session is 
 
 Environment, Canary, or argument changes restart enabled tasks across the session. Concurrency changes update queues. During startup, applying task or scheduling config can also restart the session. Use whole-session `restartSession` or `reinstallAll` only when the affected scope requires it.
 
-Build caches live in `.box/<folder>/` with separate Storybook caches. Ordinary restarts and frozen reinstalls reuse unchanged valid output. If a linked dependency or another input outside the cache fingerprint changes, force Rebuild for the affected task. Keep `.agg/` and `.box/` out of Git.
+Build caches live in `.box/<folder>/` with separate Storybook caches. Ordinary restarts and frozen reinstalls reuse unchanged valid output. Linked source inputs disable caching; arbitrary `node_modules` contents and shell variables are not hashed. If a dependency or another input outside the cache fingerprint changes, force Rebuild for the affected task. Avoid standalone builds that overwrite a running task's static `dist` with a different environment. Restore it through the affected Box task's Rebuild action and verify its API destinations. Keep `.agg/` and `.box/` out of Git.
 
 ## Read logs and use the dashboards
 
@@ -90,7 +90,18 @@ The web dashboard URL is reported by Box, defaulting to port 5432. It is separat
 
 Pause controls the displayed/followed logs while collection continues. `clearLogs` removes shared history across clients; use it only when clearing history is intended. System / Light / Dark appearance stays local, outside `.boxrc`.
 
-Stable patch/minor updates for writable npm global installs wait until all Aggregator-managed runs stop. `checkUpdates` can queue an upgrade, not prove it installed. Keep sessions running through ordinary task cleanup; do not shut down a user's stack merely to install an update. Use `agg -v` on a later launch to verify installation. Major upgrades are explicit.
+Interactive background and manual update checks run immediately in current v7; older notes about a daily discovery delay are historical. Stable patch/minor updates for writable npm global installs wait until all Aggregator-managed runs stop. `checkUpdates` can queue an upgrade, not prove it installed. Keep sessions running through ordinary task cleanup; do not shut down a user's stack merely to install an update. Use `agg -v` on a later launch to verify installation. Major upgrades are explicit.
+
+## Run commands across sibling repositories
+
+Use `agg` for Bun package commands or app scripts, `run` for executable/shell commands, and `sis` for macOS zsh aliases. They default to one job. Put `--jobs` / `-j` and `--exclude` / `--ignore` / `-e` before the child command; later arguments belong to that command. `run --exec` preserves literal arguments without shell expansion.
+
+```bash
+run --jobs 4 --exec git status --short
+agg --exclude pl install --frozen-lockfile
+```
+
+Review every immediate child folder and exclusion before a command that changes files. `run -p` and `sis -p` start all selected child commands concurrently; use bounded jobs for lightweight work and keep CPU-heavy MFE builds at one job unless the user requests otherwise. With a running Box session, use targeted task lifecycle actions for build or dependency changes so managed servers stop and resume safely.
 
 ## Generate or reuse the VS Code workspace
 
