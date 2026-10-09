@@ -4,6 +4,11 @@
 
 - Use `~/skills/common` and `~/skills/work`. Load `~/skills/work/sequoia-frontend/SKILL.md` for Sequoia frontend work according to its task triggers.
 
+## Box
+
+- Launch Box in the user's cmux terminal by running exactly `box`, without RTK, subcommands, flags, or arguments. Never launch it through the agent's internal terminal execution tools. This is an exception to the global RTK rule.
+- Use the Box MCP server for all other configuration and control.
+
 ## Git and GitHub operations
 
 - Before any Git or GitHub operation, inspect the repository's default remote and identify its owner. Use `origin` when no other default is configured. For a clone, inspect the target URL. If the remote or owner is ambiguous, resolve it before proceeding.
