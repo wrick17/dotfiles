@@ -52,7 +52,9 @@ Shared rules for Codex and Claude Code in work and personal setups.
 
 ## Delegate efficiently
 
-- Name agents `<work-title>__<model>_<effort first character>`, using a compact model name and uppercase effort initial.
+- Name agents `<work-title>__<model>_<effort first character>`, using the actual selected model's compact name and uppercase effort initial, e.g. `radio__Sol_H` for Sol with High reasoning. Set model and effort explicitly in the spawn or delegation call.
+- When a tool requires lowercase task identifiers, use a lowercase handle such as `radio__sol_h` and apply the naming convention to the display title where supported.
+- After spawning, verify the child's runtime model and effort against its name. In T3 Code, also check the displayed thread configuration; reconcile incorrect metadata with the verified runtime selection and rename a mismatched title. Report any mismatch that cannot be corrected.
 - Delegate when independent work can improve completion time or quality enough to justify coordination cost.
 - Use as many agents as useful work requires. Keep small tasks local when delegation would cost more than it saves.
 - Prioritize blockers, consequential uncertainties, and the critical path before supporting work.
