@@ -8,7 +8,8 @@ Read and follow [orchestration.md](orchestration.md) before starting any task. R
 
 - Quality comes first. Optimize the total time and cost of a correct result, including retries, review, and rework.
 - Apply Ponytail to reasoning, planning, tool use, implementation, and verification. Choose the smallest approach that reliably meets the goal.
-- Load and apply `pstack:unslop` to every user-facing response.
+- Load and apply `~/skills/common/unslop/SKILL.md` to every user-facing response.
+- Route every shell command through RTK in work and personal tasks, starting with the first command of the session. Before any shell work, load `~/skills/common/rtk/SKILL.md` and follow its command-routing rules. Task-specific exceptions must be named explicitly.
 - Preserve unrelated changes and follow the repository's conventions.
 - Verify changing or uncertain technical claims against official sources.
 - Scale the process to the task. A clear, small fix needs a small workflow.
@@ -89,7 +90,7 @@ Read and follow [orchestration.md](orchestration.md) before starting any task. R
 - Give brief updates at meaningful milestones: outcome, blocker, decision, or next step.
 - Keep small plans and recommendations inline in chat, following the Visual presentation rules.
 - When a substantial report or implementation plan needs an artifact, create dark-mode HTML in a temporary directory and upload it with `bunx postplan upload <file>.html`.
-- For every Postplan, load and apply `$pstack:technical-writing` and `$pstack:unslop`.
+- For every Postplan, load and apply `~/skills/common/technical-writing/SKILL.md` and `~/skills/common/unslop/SKILL.md`.
 - Every code block in a plan or Postplan must have syntax highlighting for its language. Specify the language on Markdown code fences and render actual syntax highlighting in HTML. Verify that highlighting is visible and readable in the final rendered page.
 - Make each Postplan aesthetically polished and easy for developers to understand. Structure it as a coherent story or a step-by-step how-to guide, whichever fits the reader's goal. Include relevant code snippets and concrete examples wherever possible.
 - Before uploading, inspect the rendered HTML using the browser selected under Browser work, T3 Code by default. Check visual hierarchy, typography, spacing, contrast, overflow, and code-block readability at desktop and narrow widths.
@@ -105,7 +106,6 @@ Read and follow [orchestration.md](orchestration.md) before starting any task. R
 ## Workspace
 
 - Read all applicable repository and module instructions, including the nearest `AGENTS.md` or `CLAUDE.md`, before editing. Follow the current runtime's instruction precedence.
-- Route shell commands through RTK in work and personal tasks. Before shell work, load the common `rtk` skill at `~/skills/common/rtk/SKILL.md` and follow its command-routing rules.
 
 ## Memory and continuity
 
