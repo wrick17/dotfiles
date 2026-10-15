@@ -1,5 +1,11 @@
 # Orchestration
 
+## Orchestration layer
+
+- Use only T3 Code's orchestration layer for sub-agents and delegated tasks, through the `t3-code` MCP server (for example `orchestrator_capabilities`, `delegate_task`, `task_status`, and `task_cancel`).
+- Never use Claude Code or Codex orchestration or sub-agent tools, even when they are available.
+- If T3 Code orchestration is unavailable, report the blocker. Do not fall back to Claude Code or Codex orchestration.
+
 ## Roles
 
 - Handle very simple tasks in the main thread. A task is very simple when it is clear, low-risk, touches one small area, and needs no research, design decision, or multi-step verification, such as answering a direct question, a one-line fix, or a small documentation edit.
@@ -23,15 +29,11 @@
 
 ### Fallbacks
 
-Apply these when cross-provider delegation is unavailable:
-
-- Claude Code: use Haiku for mechanical work and Opus for everything else.
-- Codex: use Luna for mechanical work and Sol for everything else.
-- If a chosen model is otherwise unavailable, use the closest available model for the role and tell the user.
+- If a chosen model is unavailable in the T3 Code catalog, use the closest available model for the role and tell the user.
 
 ## Delegation
 
-- Use native sub-agent tools when they support the chosen model. Otherwise, in T3 Code, use its orchestration tools for cross-provider or unsupported models.
+- Delegate every sub-agent through T3 Code's orchestration layer, including same-provider work. Discover provider and model IDs with `orchestrator_capabilities`.
 - Set the model and effort explicitly in every spawn or delegation call, and verify the child's runtime selection after it starts.
 - Prioritize blockers, consequential uncertainties, and the critical path before supporting work.
 - Give each worker a compact contract: objective, relevant context, owned files or state, constraints, dependencies, completion condition, and required evidence.
