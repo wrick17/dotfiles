@@ -2,6 +2,8 @@
 
 Shared rules for Codex and Claude Code in work and personal setups.
 
+Read and follow [orchestration.md](orchestration.md) before starting any task. Resolve this import relative to this file and apply its rules together with the rules below. Stop and report a required import that cannot be read.
+
 ## Defaults
 
 - Quality comes first. Optimize the total time and cost of a correct result, including retries, review, and rework.
@@ -29,7 +31,7 @@ Shared rules for Codex and Claude Code in work and personal setups.
 
 ## Implement and verify
 
-- Use a fail-fast strategy. Get the smallest main flow working or fix the reported bug first, verify it works, then handle relevant edge cases, stability, and polish.
+- Use a fail-fast strategy. Get the smallest main flow working or fix the reported bug first, verify it works, then handle relevant edge cases, stability, and polish at the end after the user confirms that the change works.
 - Apply security controls, trust-boundary validation, accessibility basics, and data-loss protections from the start.
 - For a new feature, establish the smallest working end-to-end path before spreading dependent implementation across agents.
 - Reuse existing code, standard libraries, native platform features, and installed dependencies before adding machinery.
@@ -40,32 +42,6 @@ Shared rules for Codex and Claude Code in work and personal setups.
 - Run required repository checks and verify the combined affected flow before declaring completion.
 - Repeat successful checks only when subsequent changes or new evidence could invalidate them.
 - Complete the agreed scope. Report any remaining limitations explicitly; a working happy flow alone is not completion.
-
-## Model selection
-
-- Select live, callable model identifiers and supported reasoning effort explicitly for each spawn. Choose for successful completion, not the lowest per-token price.
-- When the highest-capability model is the main agent, reserve its effort for requirements, decomposition, consequential decisions, integration, and the hardest unresolved problems.
-- Start difficult or high-risk work with sufficient capability and effort. Escalate promptly when evidence shows the current choice is insufficient.
-- Escalate a precise problem with evidence and a decision needed. Return routine execution to the worker after resolving it.
-- Keep reusable agent definitions model- and effort-agnostic. Use supported context-sharing and model-selection options; pass a compact task contract when context forking is unavailable.
-- If a preferred model is unavailable, choose an appropriate available model and disclose any material limitation. Task-specific model requirements still apply.
-
-## Delegate efficiently
-
-- Name agents `<work-title>__<model>_<effort first character>`, using the actual selected model's compact name and uppercase effort initial, e.g. `radio__Sol_H` for Sol with High reasoning. Set model and effort explicitly in the spawn or delegation call.
-- When a tool requires lowercase task identifiers, use a lowercase handle such as `radio__sol_h` and apply the naming convention to the display title where supported.
-- After spawning, verify the child's runtime model and effort against its name. In T3 Code, also check the displayed thread configuration; reconcile incorrect metadata with the verified runtime selection and rename a mismatched title. Report any mismatch that cannot be corrected.
-- Delegate when independent work can improve completion time or quality enough to justify coordination cost.
-- Use as many agents as useful work requires. Keep small tasks local when delegation would cost more than it saves.
-- Prioritize blockers, consequential uncertainties, and the critical path before supporting work.
-- Give each worker a compact contract: objective, relevant context, owned files or state, constraints, dependencies, completion condition, and required evidence.
-- Pass only necessary history. Include relevant user decisions and constraints even when starting a fresh context.
-- Assign one writer per shared file or mutable resource. Agree on shared interfaces before parallel implementation.
-- Route corrections and follow-ups to the existing owner. Reuse agents for related work when their context remains useful.
-- Avoid duplicate investigations unless an independent assessment addresses a concrete risk.
-- Workers return concise findings or changes, evidence pointers, check results, and unresolved issues. Keep bulky logs out of the main thread.
-- Wait for completion notifications or use an appropriate blocking wait. Check status when intervention is needed, rather than repeatedly polling.
-- Stop obsolete or unnecessary work. Close or release finished agents when supported; do not claim resources were released without evidence.
 
 ## Decisions and integration
 
@@ -94,9 +70,11 @@ Shared rules for Codex and Claude Code in work and personal setups.
 
 ## Visual presentation
 
-- Use visuals when they make an explanation, plan, comparison, or set of findings easier to understand. Keep simple answers and routine updates in prose; choose visuals based on their value to the reader, not the response type.
-- When a visual is useful, use the visualization tools exposed by the live `t3-code` MCP catalog. With the current tools, build self-contained HTML, check it with `html_preview`, and present it inline with `html_render` before the final reply.
-- Use diagrams to explain relationships, structure, and flows, and charts to show data, comparisons, and trends. Choose the simplest format that makes the information easy to understand and visualize; use tables or interactive explanations when they fit better. Give every visual report, inline visual, and Postplan a unique, visually striking design suited to its content, with clear labels, readable typography, balanced spacing, and accessible contrast. Make the visual carry the information; keep accompanying prose brief and add only what the visual does not already say. Follow the Diagrams rules when applicable.
+- Format every response for scanning: short sections, one fact per line, and tables for changes, status, or comparisons.
+- Mention a file path only when the reader needs it, and prefer names over full paths. A few file links can share a line; split longer sets into a list or table.
+- Use rendered visuals (`html_render`) for plans, architecture, and multi-part findings. Use Markdown tables and short lists for routine updates.
+- When a visual is useful, use the visualization tools exposed by the live `t3-code` MCP catalog. With the current tools, build self-contained HTML, check it with `html_preview`, and present it inline with `html_render` before the final reply. Rendered HTML must fit its container width with no horizontal scrolling; wrap long text and code, and stack or reflow wide tables and diagrams.
+- Use diagrams to explain relationships, structure, and flows, and charts to show data, comparisons, and trends. Choose the simplest format that makes the information easy to understand and visualize; use tables or interactive explanations when they fit better. Give every visual report, inline visual, and Postplan a clean, simple, polished design suited to its content: generous whitespace, few colors, clear labels, readable typography, balanced spacing, and accessible contrast. Cut decoration and any element that does not help the reader. Make the visual carry the information; keep accompanying prose brief and add only what the visual does not already say. Follow the Diagrams rules when applicable.
 - If the visualization tools are unavailable, state the limitation and provide the information in the clearest available format. Honor any format explicitly requested by the user.
 
 ## Diagrams

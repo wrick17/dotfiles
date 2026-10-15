@@ -16,7 +16,7 @@ RTK is a CLI proxy that reduces command output before it reaches the agent's con
 rtk ls
 rtk npm run build
 rtk pytest -q
-rtk proxy cat ai/global.md
+rtk proxy cat ai/common/global.md
 rtk proxy rg -n 'pattern' src
 ```
 
