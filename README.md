@@ -56,7 +56,36 @@ ln -s "$HOME/dotfiles/ai/common/codex.hooks.json" "$HOME/.codex/hooks.json"
 
 If that file already exists, merge the `PreToolUse` entry from `ai/common/codex.hooks.json` into it. Restart Codex after installing the hook.
 
-For Claude Code, merge the same `PreToolUse` entry into `~/.claude/settings.json`, with `rtk hook claude` as the command. Keep the file's other keys. `~/.claude/settings.json` holds other settings, so it is edited in place rather than linked. Restart Claude Code after adding the hook. This keeps the existing global instruction import in place. Verify the installation with `rtk --version` and `rtk gain`.
+For Claude Code, merge the same `PreToolUse` entry into each account's `settings.json`, with `rtk hook claude` as the command. Keep the file's other keys. Each account's settings file holds other settings, so it is edited in place rather than linked. Restart Claude Code after adding the hook. This keeps the existing global instruction import in place. Verify the installation with `rtk --version` and `rtk gain`.
+
+Claude Code accounts that use a separate config directory (`CLAUDE_CONFIG_DIR`) need the same hooks in their own `settings.json`. On the work machine, the work account is `~/.claude` and the personal account is `~/.plaude`. Both accounts also need the work-only session rules hook from `ai/work/`. It checks that the rule imports in that account's `CLAUDE.md` resolve, and reminds the session to follow them. Personal machines do not install this hook:
+
+```json
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$HOME/dotfiles/ai/work/claude-session-rules.sh\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+Verify each account by running a headless session with its config directory set, for example `CLAUDE_CONFIG_DIR=$HOME/.claude claude -p "..."`. The session should show the checklist and no missing-import warning.
+
+Keep the two Claude accounts separate:
+
+- Pin each T3 Code Claude provider instance to one config directory. The work instance uses `~/.claude` and the personal instance uses `~/.plaude`. T3 reads the instance's home path first, then an inherited `CLAUDE_CONFIG_DIR`, then `~/.claude`.
+- Log in only with the config directory set, for example `CLAUDE_CONFIG_DIR=$HOME/.plaude claude`, then `/login`. A `claude` run without the variable uses the default login, which is the work account on the work machine.
+- Keep `ANTHROPIC_API_KEY` unset. The session hook warns when it is set, because it can override subscription login.
+- Each session's start context names the account and config directory it uses. Check that line before starting work.
 
 AI instructions and skills live together under `ai/`:
 
@@ -73,6 +102,7 @@ ai/
     agents.md
     claude.md
     opencode.md
+    claude-session-rules.sh
   personal/
     agents.md
     claude.md
@@ -86,11 +116,11 @@ ai/
 
 `ai/common/global.md` holds shared rules. The common `agents.md` and `claude.md` add runtime rules. Work profiles import those rules and `ai/work/instructions.md`; personal profiles import only their common runtime rules. OpenCode's work profile imports the global and work rules directly.
 
-Choose the profile for each machine. This personal setup uses `ai/personal/agents.md` for Codex and `ai/personal/claude.md` for Claude Code. Work setups use `ai/work/agents.md` and `ai/work/claude.md`; the OpenCode work profile is `ai/work/opencode.md`.
+Choose the profile for each machine. Personal machines use `ai/personal/agents.md` for Codex and `ai/personal/claude.md` for Claude Code. Work machines use `ai/work/agents.md` and `ai/work/claude.md`, for every Claude account on that machine; the OpenCode work profile is `ai/work/opencode.md`.
 
 Codex files explicitly require reading their linked instructions. Claude files use native `@` imports. When installing a profile, keep the source hierarchy together and point the installed instruction file at the profile's absolute path in this repo.
 
-For a personal setup, create `~/.codex/AGENTS.md` with:
+For a personal machine, create `~/.codex/AGENTS.md` with:
 
 ```markdown
 Read and follow [agents.md](/Users/wrick/dotfiles/ai/personal/agents.md) before starting any task. Resolve instruction links relative to each containing file, follow them recursively, and apply all imported rules. Stop and report a required file that cannot be read.
@@ -104,7 +134,7 @@ Create `~/.claude/CLAUDE.md` with Claude Code's native import syntax:
 
 Replace `/Users/wrick/dotfiles` with the checkout's absolute path on another machine. Merge these entries with existing instructions instead of overwriting unrelated rules.
 
-Skills are grouped into `ai/skills/common`, `ai/skills/work`, and `ai/skills/personal`. `sequoia-frontend` is work only. Personal setups, including this machine, use common + personal. Plugin-managed skills keep their existing installations.
+Skills are grouped into `ai/skills/common`, `ai/skills/work`, and `ai/skills/personal`. `sequoia-frontend` belongs to work machines. A machine's profile sets its skill set, and every account on that machine shares it. Personal machines use common + personal. Plugin-managed skills keep their existing installations.
 
 On a fresh setup, link the shared skills directory into your home:
 
@@ -112,9 +142,9 @@ On a fresh setup, link the shared skills directory into your home:
 ln -s "$HOME/dotfiles/ai/skills" "$HOME/skills"
 ```
 
-If `~/skills` already exists as a directory, preserve its contents and update its `common`, `personal`, `work`, `.sources`, and `update` links to the matching entries under `ai/skills`. This machine keeps that directory and its legacy skill aliases.
+If `~/skills` already exists as a directory, preserve its contents and update its `common`, `personal`, `work`, `.sources`, and `update` links to the matching entries under `ai/skills`. The work machine keeps that directory and its legacy skill aliases.
 
-Codex discovers user skills through individual skill links in `~/.agents/skills`; Claude Code uses `~/.claude/skills`. Link each skill containing `SKILL.md` from `~/skills/common` and the selected profile into those directories, except skills already supplied by an installed plugin. Preserve unrelated entries. On this machine, both runtimes use the official Ponytail plugin, so neither has duplicate standalone Ponytail links. Do not link `~/skills/work` skills into a personal runtime's skill directory.
+Codex discovers user skills through individual skill links in `~/.agents/skills`; Claude Code uses `~/.claude/skills`. Link each skill containing `SKILL.md` from `~/skills/common` and the selected profile into those directories, except skills already supplied by an installed plugin. Preserve unrelated entries. On the work machine, both runtimes use the official Ponytail plugin, so neither has duplicate standalone Ponytail links. Link `~/skills/work` skills only on work machines, into each account's skill directory on that machine. Do not link them on personal machines.
 
 Install Ponytail for Claude Code at user scope through its official marketplace:
 

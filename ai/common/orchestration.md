@@ -4,6 +4,7 @@
 
 - Handle very simple tasks in the main thread. A task is very simple when it is clear, low-risk, touches one small area, and needs no research, design decision, or multi-step verification, such as answering a direct question, a one-line fix, or a small documentation edit.
 - For all other tasks, the main thread acts as the orchestrator and sub-agents do the work. Use as many sub-agents as the work needs.
+- A sub-agent may act as an orchestrator when its work is complex. It may spawn and manage its own sub-agents under these rules, integrates their results, and returns the combined result to its parent orchestrator.
 - The orchestrator owns requirements, decomposition, the task list, the queue of user requests, delegation, integration, and the final result. It keeps the user informed with brief progress summaries at meaningful milestones.
 - The orchestrator manages quality and efficiency: it gives each sub-agent a clear contract, reviews returned work, routes rework to the owner, and verifies the combined result before reporting completion.
 - The orchestrator may read files and run small checks to brief agents or verify results. It does not perform substantive implementation, research, or review that a sub-agent should own.

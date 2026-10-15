@@ -18,7 +18,7 @@ Read and follow [orchestration.md](orchestration.md) before starting any task. R
 
 - Load skills explicitly requested by the user and those required by the task. Read their `SKILL.md` before applying them, resolve references relative to that skill, and follow the current skill catalog's paths.
 - Shared skills live in `~/skills/common`. Work setups also use `~/skills/work`; personal setups also use `~/skills/personal`.
-- Work skills apply only to work tasks. `sequoia-frontend` belongs to the work profile and must not be installed or loaded in personal setups.
+- Work skills apply only to work tasks. `sequoia-frontend` belongs to the work machine profile. Install it on work machines under any account, and load it only through the work instruction chain (`ai/work/claude.md`, `ai/work/agents.md`). Personal machine profiles do not install or load it.
 - Plugin-managed skills remain managed by their plugins. Preserve their installations and caches.
 - The user's direct instructions take precedence over skill guidance. Use available evidence and existing answers before asking for a missing decision.
 
