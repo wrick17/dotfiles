@@ -19,3 +19,9 @@ Apply the imported rules together with this file. Stop and report a required imp
 
 - Consult available Claude Code native memory for relevant prior work. Use its supported memory mechanism for explicit remember, forget, or update requests.
 - Use `claude-code` as the runtime label in task-journal names.
+
+## Progress reporting
+
+- Do not narrate every tool call or small step. Keep working through routine steps without commentary.
+- Give a brief summary of the work at meaningful points: outcomes, blockers, decisions that change scope or risk, and the next step.
+- Keep each summary short, a few lines or a compact list. Give more detail only when the user asks for it.
