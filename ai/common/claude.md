@@ -22,6 +22,6 @@ Apply the imported rules together with this file. Stop and report a required imp
 
 ## Progress reporting
 
-- Do not narrate every tool call or small step. Keep working through routine steps without commentary.
-- Give a brief summary of the work at meaningful points: outcomes, blockers, decisions that change scope or risk, and the next step.
-- Keep each summary short, a few lines or a compact list. Give more detail only when the user asks for it.
+- Do not write text before, between, or after routine tool calls. No "Next I'll...", "Now I'll...", or "Let me check..." lines.
+- Write text only at milestones: an outcome, a blocker, a decision that changes scope or risk, or the next step after one of those.
+- Keep each milestone update to a few lines or a compact list. Give more detail only when the user asks for it.
