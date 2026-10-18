@@ -32,7 +32,7 @@ Read and follow [orchestration.md](orchestration.md) before starting any task. R
 
 ## Implement and verify
 
-- Use a fail-fast strategy. Get the smallest main flow working or fix the reported bug first, verify it works, then handle relevant edge cases, stability, and polish at the end after the user confirms that the change works.
+- Use a fail-fast strategy. Get the smallest main flow working or fix the reported bug first, verify it works, then handle relevant edge cases, stability, and polish at the end after the user confirms that the change works. Fix real defects: correctness, regressions, security, data loss, and gaps in the agreed scope. Do not loop on review or verification to chase minor polish or nits; deliver once the change works and causes no regressions.
 - Apply security controls, trust-boundary validation, accessibility basics, and data-loss protections from the start.
 - For a new feature, establish the smallest working end-to-end path before spreading dependent implementation across agents.
 - Reuse existing code, standard libraries, native platform features, and installed dependencies before adding machinery.
