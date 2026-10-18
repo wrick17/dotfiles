@@ -279,10 +279,9 @@ alias p="python"
 
 alias doctor="bunx -y react-doctor@latest . --verbose --no-ami -y"
 
-alias claude="claude --dangerously-skip-permissions"
-alias cc="claude --dangerously-skip-permissions"
+alias cc='CLAUDE_CONFIG_DIR="$HOME/.claude" command claude --dangerously-skip-permissions'
 alias co="codex"
-alias pc="CLAUDE_CONFIG_DIR=~/.plaude claude --dangerously-skip-permissions"
+alias pc='CLAUDE_CONFIG_DIR="$HOME/.plaude" command claude --dangerously-skip-permissions'
 
 
 alias j="jj"                          	# jj

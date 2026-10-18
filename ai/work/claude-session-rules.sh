@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Work-only SessionStart hook: check that the active CLAUDE.md's imports resolve, and remind
 # the session to follow them. The rules load through the @imports, so this script
-# never re-injects them. It walks the active CLAUDE.md, so every work account works
-# without per-account copies. Personal machines do not install it.
+# never re-injects them. Provision an independent copy for each account on a
+# work machine. Personal machines do not install it.
 # Always exits 0 so a broken rule import never blocks the session.
 
 root="${CLAUDE_HOOK_GLOBAL_MD:-${CLAUDE_CONFIG_DIR:-$HOME/.claude}/CLAUDE.md}"
