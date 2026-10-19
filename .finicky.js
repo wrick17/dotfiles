@@ -24,7 +24,6 @@ const urls = [
 	"sequoia.gpcloudservice.com/*",
 	"claude.ai/*",
 	"github.com/Sequoia-US/*",
-	"claude.com/cai/oauth/*",
 	"teams.public.onecdn.static.microsoft/*"
 ];
 
