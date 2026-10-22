@@ -89,7 +89,7 @@ Read and follow [orchestration.md](orchestration.md) before starting any task. R
 - For multi-step work, use the tasks feature when available. Keep completed and future work coarse; expand only active work.
 - Give brief updates at meaningful milestones: outcome, blocker, decision, or next step.
 - Keep small plans and recommendations inline in chat, following the Visual presentation rules.
-- When a substantial report or implementation plan needs an artifact, create dark-mode HTML in a temporary directory and upload it with `bunx postplan upload <file>.html`.
+- When a substantial report or implementation plan needs an artifact, create dark-mode HTML in a temporary directory and upload it with `node ~/Projects/personal/postplan/scripts/upload.mjs <file>.html --folder work` for Work tasks or `--folder personal` for Personal tasks. Choose the folder from the actual task context, regardless of the active machine profile. Always pass the folder for new uploads and updates, including `--draft <ID>` updates. Use lowercase flag values as required by the [Postplan docs](https://github.com/wrick17/postplan#check-publish-and-update); the official CLI has no `--folder` option.
 - Constrain the content of every HTML report and Postplan to a max-width of 1400px, centered in the page.
 - For every Postplan, load and apply `~/skills/common/technical-writing/SKILL.md` and `~/skills/common/unslop/SKILL.md`.
 - Every code block in a plan or Postplan must have syntax highlighting for its language. Specify the language on Markdown code fences and render actual syntax highlighting in HTML. Verify that highlighting is visible and readable in the final rendered page.
