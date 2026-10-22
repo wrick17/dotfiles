@@ -135,8 +135,9 @@ eval "$(fzf --zsh)"
 eval "$(zoxide init zsh)"
 eval "$(fnm env --use-on-cd)"
 
-source "${HOME}/.alias.zsh"
 source "${HOME}/.secrets.zsh"
+# Keep local overrides from replacing the maintained account browser aliases.
+source "${HOME}/.alias.zsh"
 
 export HOMEBREW_NO_AUTO_UPDATE=1
 export NODE_TLS_REJECT_UNAUTHORIZED=0
