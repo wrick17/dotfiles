@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Seed independent Claude account files; preserve account edits on later runs."""
+"""Seed independent Claude account files; import shared rules from dotfiles; preserve account edits on later runs."""
 
 import argparse
 from datetime import datetime, timezone
@@ -36,9 +36,6 @@ def provision(config, profile, default_model):
                 replacements[str(Path.home() / "skills" / relative)] = local
         for prefix in ("~/skills/", str(Path.home() / "skills") + "/", str(AI / "skills") + "/"):
             replacements[prefix + scope] = str(config / "skill-library" / scope)
-    for prefix in ("~/dotfiles/ai/", str(AI) + "/", str(Path.home() / "dotfiles/ai") + "/"):
-        for scope in ("common", "work", "personal"):
-            replacements[prefix + scope] = str(config / "rules" / scope)
     replacements = sorted(replacements.items(), key=lambda pair: len(pair[0]), reverse=True)
 
     def localize(text):
@@ -87,7 +84,6 @@ def provision(config, profile, default_model):
                 target.chmod(source.stat().st_mode & 0o777)
 
     for scope in ("common", profile):
-        snapshot(AI / scope, config / "rules" / scope)
         snapshot(AI / "skills" / scope, config / "skill-library" / scope)
 
     skills = config / "skills"
@@ -112,9 +108,14 @@ def provision(config, profile, default_model):
 
     materialize(skills)
 
+    # Rules load straight from dotfiles; drop rule snapshots left by older runs.
     entry = config / "CLAUDE.md"
     text = entry.read_text() if entry.exists() else "# Global Claude Code instructions\n\n@rules/" + profile + "/claude.md\n"
-    write(entry, localize(text))
+    write(entry, text.replace("@" + str(config / "rules") + "/", "@rules/").replace("@rules/", "@" + str(AI) + "/"))
+    rules = config / "rules"
+    if rules.exists() or rules.is_symlink():
+        save(rules)
+        rules.unlink() if rules.is_symlink() else shutil.rmtree(rules)
 
     settings_path = config / "settings.json"
     settings = json.loads(settings_path.read_text()) if settings_path.exists() else {}

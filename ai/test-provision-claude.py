@@ -39,14 +39,17 @@ class ProvisionTest(unittest.TestCase):
             for config in accounts:
                 (config / "skills").mkdir(parents=True)
                 (config / "skills/test").symlink_to(upstream)
-                (config / "CLAUDE.md").write_text("@" + str(source / "work/claude.md") + "\nKeep my account rule\n")
+                (config / "CLAUDE.md").write_text("@" + str(config / "rules/work/claude.md") + "\nKeep my account rule\n")
+                (config / "rules/common").mkdir(parents=True)
+                (config / "rules/common/global.md").write_text("Stale snapshot")
                 (config / "settings.json").write_text(json.dumps({"distinct": config.name}))
                 (config / ".claude.json").write_text("auth sentinel")
                 (config / "plugins").mkdir()
                 (config / "plugins/sentinel").symlink_to(upstream)
                 module.provision(config, "work", "opus" if config.name == "max" else "haiku")
                 self.assertIn("Keep my account rule", (config / "CLAUDE.md").read_text())
-                self.assertNotIn(str(source), (config / "CLAUDE.md").read_text())
+                self.assertIn("@" + str(source / "work/claude.md") + "\n", (config / "CLAUDE.md").read_text())
+                self.assertFalse((config / "rules").exists())
                 self.assertFalse(any(p.is_symlink() for p in (config / "skills").rglob("*")))
                 self.assertEqual((config / ".claude.json").read_text(), "auth sentinel")
                 self.assertTrue((config / "plugins/sentinel").is_symlink())
@@ -55,7 +58,6 @@ class ProvisionTest(unittest.TestCase):
                 self.assertIn(str(config / "hooks"), settings["hooks"]["SessionStart"][0]["hooks"][0]["command"])
             personal = accounts[1]
             (personal / "skills/test/SKILL.md").write_text("Personal edit")
-            (personal / "rules/common/global.md").write_text("Personal rule")
             settings = json.loads((personal / "settings.json").read_text())
             settings["model"] = "sonnet"
             (personal / "settings.json").write_text(json.dumps(settings))
@@ -63,7 +65,7 @@ class ProvisionTest(unittest.TestCase):
             for config in accounts:
                 module.provision(config, "work", "opus")
             self.assertEqual((personal / "skills/test/SKILL.md").read_text(), "Personal edit")
-            self.assertEqual((personal / "rules/common/global.md").read_text(), "Personal rule")
+            self.assertIn("Keep my account rule", (personal / "CLAUDE.md").read_text())
             self.assertEqual(json.loads((personal / "settings.json").read_text())["model"], "sonnet")
             self.assertNotEqual((accounts[0] / "skills/test/SKILL.md").read_text(), "Personal edit")
             left = {p.stat().st_ino for p in accounts[0].rglob("*") if p.is_file() and "plugins" not in p.parts}

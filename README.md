@@ -56,14 +56,14 @@ ln -s "$HOME/dotfiles/ai/common/codex.hooks.json" "$HOME/.codex/hooks.json"
 
 If that file already exists, merge the `PreToolUse` entry from `ai/common/codex.hooks.json` into it. Restart Codex after installing the hook.
 
-Claude Code accounts have independent user settings, instructions, skills, and hooks. Provision each account from these templates once, then edit its local files. On this work machine, both accounts keep a work instruction snapshot:
+Claude Code accounts have independent user settings, skills, and hooks. Each account's `CLAUDE.md` imports the shared rules from `ai/<profile>/claude.md` directly, so rule edits in this repo apply to every account. Provision each account once, then edit its local settings and skills. On this work machine, both accounts use the work rules:
 
 ```sh
 rtk proxy python3 "$HOME/dotfiles/ai/provision-claude.py" "$HOME/.claude" --profile work --default-model haiku
 rtk proxy python3 "$HOME/dotfiles/ai/provision-claude.py" "$HOME/.plaude" --profile work --default-model opus
 ```
 
-The helper materializes instruction imports and skill symlinks, including nested symlinks. It rewrites shared instruction and skill paths to account-local copies and fixes the SessionStart hook path. Existing settings and model choices are preserved; `--default-model` only seeds a missing choice. Changed files are backed up under `~/.local/state/claude-account-backups/` with private permissions. It leaves authentication, sessions, plugins, and caches alone. Reruns preserve account edits and do not relink snapshots to shared sources. Upstream updates require a deliberate edit to each account's local snapshot. Check the helper with `rtk proxy python3 ai/test-provision-claude.py`.
+The helper points `CLAUDE.md` at the shared rules and removes rule snapshots left by older runs. It materializes skill symlinks, including nested symlinks, rewrites shared skill paths to account-local copies, and fixes the SessionStart hook path. Existing settings and model choices are preserved; `--default-model` only seeds a missing choice. Changed files are backed up under `~/.local/state/claude-account-backups/` with private permissions. It leaves authentication, sessions, plugins, and caches alone. Reruns preserve account edits and do not relink skill snapshots to shared sources. Upstream skill updates require a deliberate edit to each account's local snapshot. Check the helper with `rtk proxy python3 ai/test-provision-claude.py`.
 
 After sourcing `~/.zshrc` in a fresh terminal:
 
