@@ -90,6 +90,7 @@ Read and follow [orchestration.md](orchestration.md) before starting any task. R
 - Give brief updates at meaningful milestones: outcome, blocker, decision, or next step.
 - Keep small plans and recommendations inline in chat, following the Visual presentation rules.
 - When a substantial report or implementation plan needs an artifact, create dark-mode HTML in a temporary directory and upload it with `bunx postplan upload <file>.html`.
+- Constrain the content of every HTML report and Postplan to a max-width of 1400px, centered in the page.
 - For every Postplan, load and apply `~/skills/common/technical-writing/SKILL.md` and `~/skills/common/unslop/SKILL.md`.
 - Every code block in a plan or Postplan must have syntax highlighting for its language. Specify the language on Markdown code fences and render actual syntax highlighting in HTML. Verify that highlighting is visible and readable in the final rendered page.
 - Make each Postplan aesthetically polished and easy for developers to understand. Structure it as a coherent story or a step-by-step how-to guide, whichever fits the reader's goal. Include relevant code snippets and concrete examples wherever possible.
