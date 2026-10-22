@@ -23,6 +23,7 @@ const urls = [
 	"www.figma.com/*",
 	"sequoia.gpcloudservice.com/*",
 	"claude.ai/*",
+	"claude.com/*",
 	"github.com/Sequoia-US/*",
 	"teams.public.onecdn.static.microsoft/*"
 ];
@@ -33,10 +34,21 @@ export default {
 		checkForUpdates: false,
 		logRequests: false,
 	},
-	handlers: urls.map((url) => ({
-		match: url,
-		browser: "Island",
-	})),
+	handlers: [
+		{
+			match: ["claude.ai/*", "claude.com/*"],
+			browser: {
+				name: "io.github.wrick17.finicky-browser-chooser",
+				appType: "bundleId",
+				// Keep the chooser in the background so macOS does not switch Spaces.
+				openInBackground: true,
+			},
+		},
+		...urls.map((url) => ({
+			match: url,
+			browser: "Island",
+		})),
+	],
 
 	rewrite: [
 		{
