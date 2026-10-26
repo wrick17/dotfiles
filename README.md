@@ -77,6 +77,24 @@ pc --model opus     # Max personal account, subject to device policy
 
 In T3 Code, select Office for Enterprise Sonnet or Haiku, and the personal Claude provider for Max Opus. Keep the provider instances pinned to `~/.claude` and `~/.plaude` respectively. Requested model metadata is not proof of the model that answered; inspect the actual assistant transcript when checking routing.
 
+On work machines, the personal provider launches Claude through `ai/work/claude-personal-t3`. The launcher reads the `~/.plaude` login from that account's Keychain item, passes the access token to `~/.local/bin/claude` on an inherited pipe descriptor, drops inherited API keys, OAuth tokens, base URLs, and `CLAUDE_CODE_USE_*` provider switches, and supplies host-managed settings that default to `claude-opus-5-5` with `opus`, `sonnet`, and `haiku` available. `--help`, `-h`, and `--version` pass straight through. Link it into place, backing up any existing file:
+
+```sh
+target="$HOME/.local/bin/claude-personal-t3"
+mkdir -p "$HOME/.local/bin"
+[ -e "$target" ] && [ ! -L "$target" ] && mv "$target" "$target.backup-$(date +%Y%m%d%H%M%S)"
+ln -sfn "$HOME/dotfiles/ai/work/claude-personal-t3" "$target"
+```
+
+Then set only these provider fields in T3 Code's settings. Leave the other settings as they are, and do not copy `~/.t3` between machines:
+
+| Instance | Driver | Display name | `homePath` | `binaryPath` |
+| --- | --- | --- | --- | --- |
+| `claude` | `claudeAgent` | Claude | `~/.plaude` | absolute path of `~/.local/bin/claude-personal-t3` |
+| `claudeAgent` | `claudeAgent` | Office | `~/.claude` | unset |
+
+Credentials stay in the local Keychain and are not part of this repo. The launcher does not refresh tokens. When the personal login is missing or expired, it exits with an error; run `pc`, log in again with `/login`, then restart the T3 session. Check the launcher with `rtk proxy python3 ai/work/test-claude-personal-t3.py`; the test uses synthetic credentials and mocks Keychain and exec.
+
 Restart sessions after provisioning. Check each account-local SessionStart hook for missing imports and the reported account/config directory. Executables, project settings, and administrator policy still follow Claude Code's normal scopes. Plugin-managed installations and caches remain under their existing management.
 
 AI instructions and skills live together under `ai/`:
@@ -95,6 +113,8 @@ ai/
     claude.md
     opencode.md
     claude-session-rules.sh
+    claude-personal-t3
+    test-claude-personal-t3.py
   personal/
     agents.md
     claude.md

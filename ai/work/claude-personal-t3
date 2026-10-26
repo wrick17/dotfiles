@@ -1,0 +1,62 @@
+#!/usr/bin/python3
+"""Launch T3 Personal with its own model list and existing personal login."""
+import getpass
+import hashlib
+import json
+import os
+from pathlib import Path
+import subprocess
+import sys
+import time
+
+
+def main():
+    config = str(Path.home() / ".plaude")
+    executable = str(Path.home() / ".local/bin/claude")
+    arguments = sys.argv[1:]
+    if arguments in (["--version"], ["--help"], ["-h"]):
+        os.execv(executable, [executable, *arguments])
+    service = "Claude Code-credentials-" + hashlib.sha256(config.encode()).hexdigest()[:8]
+    try:
+        result = subprocess.run(
+            ["/usr/bin/security", "find-generic-password", "-a", getpass.getuser(),
+             "-s", service, "-w"],
+            capture_output=True, text=True, timeout=5, check=True,
+        )
+        credentials = json.loads(result.stdout)["claudeAiOauth"]
+        token = credentials["accessToken"]
+        if not isinstance(token, str) or not token:
+            raise ValueError("missing access token")
+        if credentials.get("expiresAt", 0) <= time.time() * 1000:
+            raise ValueError("expired access token")
+    except (subprocess.SubprocessError, ValueError, KeyError, OSError):
+        sys.exit("T3 Personal cannot read a current personal Claude login. Use the regular personal CLI to refresh it.")
+    # Drop inherited endpoints, providers and credentials so the personal token only reaches Anthropic.
+    overrides = {"ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN", "ANTHROPIC_AWS_API_KEY",
+                 "ANTHROPIC_FOUNDRY_API_KEY", "ANTHROPIC_FOUNDRY_AUTH_TOKEN", "ANTHROPIC_API_HOST",
+                 "CLAUDE_CODE_API_BASE_URL", "CLAUDE_CODE_CUSTOM_OAUTH_URL",
+                 "CLAUDE_CODE_API_KEY_FILE_DESCRIPTOR", "CLAUDE_CODE_OAUTH_TOKEN",
+                 "CLAUDE_CODE_OAUTH_REFRESH_TOKEN", "CLAUDE_CODE_HOST_CREDS_FILE",
+                 "CLAUDE_CODE_HOST_AUTH_ENV_VAR", "CLAUDE_SECURESTORAGE_CONFIG_DIR"}
+    environment = {name: value for name, value in os.environ.items()
+                   if name not in overrides and not name.startswith("CLAUDE_CODE_USE_")
+                   and not (name.startswith("ANTHROPIC_") and name.endswith("_BASE_URL"))}
+    environment["CLAUDE_CONFIG_DIR"] = config
+    environment["CLAUDE_CODE_PROVIDER_MANAGED_BY_HOST"] = "1"
+    environment["CLAUDE_CODE_OAUTH_SCOPES"] = " ".join(credentials.get("scopes", []))
+    for field, name in (("subscriptionType", "CLAUDE_CODE_SUBSCRIPTION_TYPE"),
+                        ("rateLimitTier", "CLAUDE_CODE_RATE_LIMIT_TIER")):
+        if credentials.get(field):
+            environment[name] = credentials[field]
+    # The CLI consumes this descriptor; the token never enters argv, env or a file.
+    descriptor, writer = os.pipe()
+    os.write(writer, token.encode())
+    os.close(writer)
+    os.set_inheritable(descriptor, True)
+    environment["CLAUDE_CODE_OAUTH_TOKEN_FILE_DESCRIPTOR"] = str(descriptor)
+    settings = json.dumps({"model": "claude-opus-5-5", "availableModels": ["opus", "sonnet", "haiku"]})
+    os.execve(executable, [executable, "--managed-settings", settings, *arguments], environment)
+
+
+if __name__ == "__main__":
+    main()
