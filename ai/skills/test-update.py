@@ -6,6 +6,7 @@ from pathlib import Path
 import subprocess
 import tempfile
 import unittest
+from unittest.mock import patch
 
 update = SourceFileLoader("update", str(Path(__file__).with_name("update"))).load_module()
 
@@ -52,6 +53,11 @@ class UpdateTest(unittest.TestCase):
             git(repo, "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-qam", "clash")
             notes = update.merge_skill("s", spec, git(repo, "rev-parse", "HEAD"))
             self.assertIn("conflict markers", notes[0])
+
+    def test_latest_tag_sorts_numerically_and_ignores_other_tags(self):
+        refs = "a\trefs/tags/v5.9.0\nb\trefs/tags/v5.10.0\nc\trefs/tags/v6.0.0-rc1\nd\trefs/tags/latest\n"
+        with patch.object(update.subprocess, "run", return_value=subprocess.CompletedProcess([], 0, refs, "")):
+            self.assertEqual(update.latest_tag("o/r"), "v5.10.0")
 
     def test_lint_flags_hosts_but_not_css_cursor(self):
         self.assertTrue(update.BANNED.search("Spawn a Task subagent with subagent_type"))

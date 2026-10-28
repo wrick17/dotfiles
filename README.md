@@ -129,6 +129,9 @@ ai/
       personal/
       .sources/
     update
+    sync-ponytail
+  git-hooks/
+    post-merge
 ```
 
 `ai/common/global.md` and `ai/common/orchestration.md` hold the always-loaded shared rules, kept short. Situational rules live in skills under `ai/skills/mine` (for example `delegation`, `browser-work`, `visual-reports`, and the work skills `sequoia-pr` and `github-accounts`); the core files list a trigger line for each. The common `agents.md` and `claude.md` add runtime rules. Work profiles import those rules and `ai/work/instructions.md`; personal profiles import only their common runtime rules. OpenCode's work profile imports the global and work rules directly.
@@ -153,23 +156,25 @@ On a fresh setup, link the shared skills directory into your home:
 ln -s "$HOME/dotfiles/ai/skills" "$HOME/skills"
 ```
 
-If `~/skills` already exists as a directory, preserve its contents and update its `mine`, `third-party`, and `update` links to the matching entries under `ai/skills`. The work machine keeps that directory and its legacy skill aliases.
+If `~/skills` already exists as a directory, preserve its contents and update its `mine`, `third-party`, `update`, and `sync-ponytail` links to the matching entries under `ai/skills`. The work machine keeps that directory and its legacy skill aliases.
 
-Codex discovers user skills through individual links in `~/.agents/skills`, each pointing at `../../skills/<owner>/<profile>/<skill>`; add a link for every skill in `mine/common` and the profile's `mine` folder. Claude Code discovers skills in each account's own `skills` directory. The provisioning helper links every skill in `mine/common` and `mine/<profile>` into each account on every run, backing up any copy it replaces. It materializes third-party skills, preserving existing regular directories and unrelated entries. Fresh accounts receive common and selected-profile third-party skills, excluding Ponytail skills supplied by the plugin. Existing accounts keep their current third-party skill set. Plugin-managed skills stay managed by their plugins.
+Codex discovers user skills through individual links in `~/.agents/skills`, each pointing at `../../skills/<owner>/<profile>/<skill>`; add a link for every skill in `mine/common` and the profile's `mine` folder. Claude Code discovers skills in each account's own `skills` directory. The provisioning helper links every skill in `mine/common` and `mine/<profile>` into each account on every run, backing up any copy it replaces. It materializes third-party skills, preserving existing regular directories and unrelated entries. Fresh accounts receive common and selected-profile third-party skills. Existing accounts keep their current third-party skill set. Plugin-managed skills stay managed by their plugins.
 
-Install Ponytail for Claude Code at user scope through its official marketplace:
+Ponytail is installed as a plugin, not vendored. The `plugins.ponytail` entry in `ai/skills/third-party/sources.json` pins its release tag, and this repo is the only place that version is set. `ai/skills/sync-ponytail` installs that tag:
+
+- **Claude Code:** for each of `~/.claude` and `~/.plaude` that exists, it sets the `ponytail` marketplace's `ref` to the tag in the account's `settings.json`, backing up the file first. It then re-adds the marketplace and reinstalls any copy not built from the tagged commit, keeping plugin data.
+- **Codex:** when `codex` is installed, it writes a one-plugin local marketplace to `~/.local/state/ponytail-codex-marketplace`, because upstream's Codex catalog always points at `main`. It then installs from that marketplace and re-approves only Ponytail's hooks.
+- **Check:** for each runtime, it runs the installed `SessionStart` hook and requires `PONYTAIL MODE ACTIVE`. It exits non-zero on any failure.
 
 ```sh
-claude plugin marketplace add DietrichGebert/ponytail --scope user
-claude plugin install ponytail@ponytail --scope user
-claude plugin list
+rtk proxy ~/skills/sync-ponytail
 ```
 
-The plugin supplies six namespaced skills, including `/ponytail:ponytail` and `/ponytail:ponytail-review`, plus its `SessionStart`, `UserPromptSubmit`, and `SubagentStart` hooks. Node.js must be available on the non-interactive shell's `PATH` for the hooks. Start a new Claude Code session or run `/reload-plugins` after installation. The preserved common source checkout remains available to other consumers.
+The provisioning helper sets this repo's `core.hooksPath` to `ai/git-hooks`. It leaves an existing different value alone and prints a warning. The tracked `post-merge` hook runs `sync-ponytail` after a `git pull` that moves the pin. If the sync fails, the hook warns and keeps the pull; fix the error and rerun the script. Pulls through `jj` or `git pull --rebase` do not run `post-merge`, so run the script yourself after them. The plugin supplies six namespaced skills, such as `/ponytail:ponytail`, plus `SessionStart`, `UserPromptSubmit`, and `SubagentStart` hooks. Those hooks run `node`, which must be on the `PATH` of the shell or app that launches the agent. Restart running agents after a sync.
 
-Third-party skills from pstack, mattpocock and Ponytail are vendored into `ai/skills/third-party/common` as tracked, agent-agnostic copies: no product, host, or model names in their instructions. `ai/skills/third-party/sources.json` records each skill's upstream repository, path, and the upstream commit its copy is based on. Archify stays a link into its checkout because its only host names are brand-logo data. The rstack family, `mf`, and `pdf` have no recorded upstream and are maintained by hand.
+Third-party skills from pstack and mattpocock are vendored into `ai/skills/third-party/common` as tracked, agent-agnostic copies: no product, host, or model names in their instructions. `ai/skills/third-party/sources.json` records each skill's upstream repository, path, and the upstream commit its copy is based on. Archify stays a link into its checkout because its only host names are brand-logo data. The rstack family, `mf`, and `pdf` have no recorded upstream and are maintained by hand.
 
-Upstream checkouts stay in `ai/skills/third-party/.sources`, outside the parent Git history, as clean mirrors. Do not edit them; edit the vendored copy. `~/skills/update` fast-forwards each checkout, three-way merges upstream changes since the recorded commit into the vendored copies, and then checks every vendored skill for host-specific wording:
+Upstream checkouts stay in `ai/skills/third-party/.sources`, outside the parent Git history, as clean mirrors. Do not edit them; edit the vendored copy. `~/skills/update` fast-forwards each checkout and three-way merges upstream changes since the recorded commit into the vendored copies. It moves the Ponytail pin to the newest upstream `vX.Y.Z` tag, found over HTTPS, and runs `sync-ponytail`. Then it checks every vendored skill for host-specific wording:
 
 ```sh
 rtk proxy ~/skills/update          # pull upstream, merge, then lint
@@ -177,7 +182,7 @@ rtk proxy ~/skills/update --lint   # lint only
 rtk proxy python3 ~/skills/test-update.py
 ```
 
-It prints `NOTE` lines for conflicts (markers left in the file), files that changed on both sides, and skills removed upstream, which it keeps as frozen copies. It prints `HOST-SPECIFIC` lines for wording to make generic, and exits non-zero while any remain. Review the diff, resolve the notes, and commit. Then refresh each Claude account's copies, which backs up the old ones:
+It prints `NOTE` lines for conflicts (markers left in the file), files that changed on both sides, and skills removed upstream, which it keeps as frozen copies, plus a moved Ponytail pin. It prints `HOST-SPECIFIC` lines for wording to make generic, and exits non-zero while any remain. Review the diff, resolve the notes, and commit. Then refresh each Claude account's copies, which backs up the old ones:
 
 ```sh
 rtk proxy python3 "$HOME/dotfiles/ai/provision-claude.py" "$HOME/.claude" --profile work --default-model haiku --refresh-third-party
@@ -190,7 +195,6 @@ On another machine, recreate these source checkouts before running `update`:
 ```sh
 mkdir -p "$HOME/dotfiles/ai/skills/third-party/.sources"
 git clone git@github.com:cursor/plugins.git "$HOME/dotfiles/ai/skills/third-party/.sources/cursor-plugins"
-git clone git@github.com:DietrichGebert/ponytail.git "$HOME/dotfiles/ai/skills/third-party/.sources/ponytail"
 git clone git@github.com:mattpocock/skills.git "$HOME/dotfiles/ai/skills/third-party/.sources/mattpocock-skills"
 git clone https://github.com/tt-a1i/archify.git "$HOME/dotfiles/ai/skills/third-party/.sources/archify"
 ```

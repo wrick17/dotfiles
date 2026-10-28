@@ -8,10 +8,6 @@
       "remote": "git@github.com:mattpocock/skills.git",
       "branch": "main"
     },
-    "ponytail": {
-      "remote": "git@github.com:DietrichGebert/ponytail.git",
-      "branch": "main"
-    },
     "archify": {
       "remote": "https://github.com/tt-a1i/archify.git",
       "branch": "main"
@@ -53,36 +49,6 @@
       "path": "pstack/skills/how",
       "base": "c742dd61706fbacc1b95f1a20b7b988cf096ce6c"
     },
-    "ponytail": {
-      "repo": "ponytail",
-      "path": "skills/ponytail",
-      "base": "09c434ab73ca43761c5d8b0c5d341926c2fba710"
-    },
-    "ponytail-audit": {
-      "repo": "ponytail",
-      "path": "skills/ponytail-audit",
-      "base": "09c434ab73ca43761c5d8b0c5d341926c2fba710"
-    },
-    "ponytail-debt": {
-      "repo": "ponytail",
-      "path": "skills/ponytail-debt",
-      "base": "09c434ab73ca43761c5d8b0c5d341926c2fba710"
-    },
-    "ponytail-gain": {
-      "repo": "ponytail",
-      "path": "skills/ponytail-gain",
-      "base": "09c434ab73ca43761c5d8b0c5d341926c2fba710"
-    },
-    "ponytail-help": {
-      "repo": "ponytail",
-      "path": "skills/ponytail-help",
-      "base": "09c434ab73ca43761c5d8b0c5d341926c2fba710"
-    },
-    "ponytail-review": {
-      "repo": "ponytail",
-      "path": "skills/ponytail-review",
-      "base": "09c434ab73ca43761c5d8b0c5d341926c2fba710"
-    },
     "resolving-merge-conflicts": {
       "repo": "mattpocock-skills",
       "path": "skills/engineering/resolving-merge-conflicts",
@@ -123,6 +89,12 @@
       "repo": "mattpocock-skills",
       "path": "skills/productivity/writing-for-agents",
       "base": "59db609eb1e18aaf59b63284d0e52255aff0c63c"
+    }
+  },
+  "plugins": {
+    "ponytail": {
+      "github": "DietrichGebert/ponytail",
+      "tag": "v5.3.2"
     }
   }
 }

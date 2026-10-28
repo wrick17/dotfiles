@@ -1,0 +1,220 @@
+#!/usr/bin/env python3
+"""Install the Ponytail plugin at the tag pinned in third-party/sources.json for every
+Claude Code account and Codex on this machine, re-approve its Codex hooks, and check
+that each runtime's SessionStart hook activates."""
+
+from datetime import datetime
+import json
+import os
+from pathlib import Path
+import re
+import shutil
+import subprocess
+import sys
+import tomllib
+
+MANIFEST = Path(__file__).resolve().parent / "third-party" / "sources.json"
+PLUGIN = "ponytail@ponytail"
+TAG = re.compile(r"v\d+\.\d+\.\d+")
+REPO = re.compile(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+")
+HOME = Path.home()
+SESSION_START = '{"hook_event_name":"SessionStart","source":"startup"}'
+
+
+class SyncError(Exception):
+    pass
+
+
+def pin():
+    spec = json.loads(MANIFEST.read_text())["plugins"]["ponytail"]
+    if not REPO.fullmatch(spec["github"]) or not TAG.fullmatch(spec["tag"]):
+        raise SyncError(f"Invalid Ponytail pin in {MANIFEST}: {spec}")
+    return spec["github"], spec["tag"]
+
+
+def run(*args, env=None, cwd=HOME):
+    result = subprocess.run(args, env=env, cwd=cwd, text=True, capture_output=True, stdin=subprocess.DEVNULL)
+    if result.returncode:
+        raise SyncError(f"{' '.join(args)} failed:\n{(result.stdout + result.stderr).strip()}")
+    return result.stdout
+
+
+def backup(path):
+    target = path.with_name(path.name + ".backup-" + datetime.now().strftime("%Y%m%d%H%M%S"))
+    shutil.copy2(path, target)
+    return target
+
+
+def write(path, data):
+    """Replace path through a sibling temp file so an interruption never leaves it truncated."""
+    path = path.resolve()
+    temp = path.with_name(path.name + ".sync-tmp")
+    temp.unlink(missing_ok=True)
+    with temp.open("xb") as stream:
+        os.chmod(temp, path.stat().st_mode & 0o777 if path.exists() else 0o600)
+        stream.write(data)
+    temp.replace(path)
+
+
+def smoke(label, root, version, extra_env=None):
+    manifest = root / ".claude-plugin" / "plugin.json"
+    found = json.loads(manifest.read_text()).get("version") if manifest.is_file() else None
+    if found != version:
+        raise SyncError(f"{label}: installed Ponytail is {found}, expected {version} ({root})")
+    if not shutil.which("node"):
+        raise SyncError(f"{label}: node is not on PATH, so Ponytail hooks cannot run")
+    env = {**os.environ, "CLAUDE_PLUGIN_ROOT": str(root), **(extra_env or {})}
+    out = subprocess.run(["node", str(root / "hooks" / "ponytail-activate.js")], input=SESSION_START,
+                         env=env, text=True, capture_output=True, timeout=10).stdout
+    if "PONYTAIL MODE ACTIVE" not in out:
+        raise SyncError(f"{label}: SessionStart hook did not activate Ponytail:\n{out[:300]}")
+    print(f"OK {label}: Ponytail {version} ({root}): PONYTAIL MODE ACTIVE")
+
+
+def sync_claude(config, repo, tag):
+    env = {**os.environ, "CLAUDE_CONFIG_DIR": str(config)}
+    settings_path = config / "settings.json"
+    settings = json.loads(settings_path.read_text()) if settings_path.exists() else {}
+    installed = config / "plugins" / "installed_plugins.json"
+
+    def records():
+        return json.loads(installed.read_text()).get("plugins", {}).get(PLUGIN, []) if installed.exists() else []
+
+    # A project record whose directory was deleted cannot be reinstalled; leave it alone rather than fail midway.
+    gone = [r for r in records() if "projectPath" in r and not Path(r["projectPath"]).is_dir()]
+    for r in gone:
+        print(f"warning: {config}: skipping the {r['scope']} Ponytail install for missing project {r['projectPath']}; "
+              f"remove it from {installed} if the project is gone", file=sys.stderr)
+    live = [r for r in records() if r not in gone]
+    source = settings.get("extraKnownMarketplaces", {}).get("ponytail", {}).get("source")
+    # Claude refuses to re-add a marketplace whose source differs from its settings entry, so move the entry's ref first.
+    if source and source.get("ref") != tag:
+        if source.get("source") != "github" or source.get("repo") != repo:
+            raise SyncError(f"{settings_path}: unexpected ponytail marketplace source {source}")
+        saved = backup(settings_path)
+        source["ref"] = tag
+        write(settings_path, (json.dumps(settings, indent=2) + "\n").encode())
+        print(f"{config}: pinned the ponytail marketplace to {tag} (backup {saved.name})")
+    run("claude", "plugin", "marketplace", "add", f"{repo}@{tag}", env=env)
+    market = Path(json.loads((config / "plugins/known_marketplaces.json").read_text())["ponytail"]["installLocation"])
+    head = run("git", "-C", str(market), "rev-parse", "HEAD").strip()
+
+    # plugin update compares versions only, so reinstall any copy not built from the pinned commit; --keep-data keeps its state.
+    stale = [(r["scope"], Path(r.get("projectPath", HOME))) for r in live if r.get("gitCommitSha") != head]
+    if not any(r["scope"] == "user" for r in live):
+        stale.append(("user", HOME))
+    for scope, cwd in stale:
+        # Uninstall drops the install record and the scope's enabledPlugins entry but keeps the cache, so restoring both recovers it.
+        scope_settings = config / "settings.json" if scope == "user" else cwd / ".claude" / (
+            "settings.json" if scope == "project" else "settings.local.json")
+        saved = {f: f.read_bytes() for f in (installed, scope_settings) if f.exists()}
+        try:
+            if any(r["scope"] == scope and Path(r.get("projectPath", HOME)) == cwd for r in records()):
+                run("claude", "plugin", "uninstall", PLUGIN, "--scope", scope, "--keep-data", env=env, cwd=cwd)
+            run("claude", "plugin", "install", PLUGIN, "--scope", scope, env=env, cwd=cwd)
+        except SyncError as error:
+            for f, data in saved.items():
+                write(f, data)
+            raise SyncError(f"{error}\n{config}: restored the previous {scope} install") from None
+    for record in records():
+        if record in gone:
+            continue
+        root = Path(record["installPath"])
+        if record.get("gitCommitSha") != head or any(
+                (root / f).read_bytes() != (market / f).read_bytes() for f in ("hooks/ponytail-activate.js", ".claude-plugin/plugin.json")):
+            raise SyncError(f"{config}: {record['scope']} install at {root} does not match {tag} ({head[:7]})")
+    user = next(r for r in records() if r["scope"] == "user")
+    smoke(str(config), Path(user["installPath"]), tag[1:])
+
+
+def approve_codex_hooks(env):
+    """Trust only Ponytail's hooks through Codex's app-server, which plugin add does not do."""
+    server = subprocess.Popen(["codex", "app-server"], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                              stderr=subprocess.DEVNULL, text=True, cwd=HOME, env=env)
+
+    def call(id, method, params):
+        server.stdin.write(json.dumps({"id": id, "method": method, "params": params}) + "\n")
+        server.stdin.flush()
+        for line in server.stdout:
+            message = json.loads(line)
+            if message.get("id") == id:
+                if "error" in message:
+                    raise SyncError(f"codex app-server {method}: {message['error']}")
+                return message["result"]
+        raise SyncError(f"codex app-server exited during {method}")
+
+    def ponytail_hooks():
+        listed = call(next(ids), "hooks/list", {"cwds": [str(HOME)]})
+        return [h for entry in listed["data"] for h in entry["hooks"] if h.get("pluginId") == PLUGIN]
+
+    ids = iter(range(1, 100))
+    try:
+        call(next(ids), "initialize", {"clientInfo": {"name": "dotfiles-sync-ponytail", "version": "1"}})
+        server.stdin.write(json.dumps({"method": "initialized"}) + "\n")
+        state = {h["key"]: {"trusted_hash": h["currentHash"]} for h in ponytail_hooks() if h["trustStatus"] != "trusted"}
+        if state:
+            call(next(ids), "config/batchWrite", {"edits": [{"keyPath": "hooks.state", "mergeStrategy": "upsert", "value": state}]})
+            print(f"Codex: approved {len(state)} Ponytail hooks")
+        hooks = ponytail_hooks()
+    finally:
+        server.terminate()
+        server.wait(timeout=10)
+    if not hooks or any(h["trustStatus"] != "trusted" for h in hooks):
+        raise SyncError(f"Codex: Ponytail hooks not trusted: {[(h['key'], h['trustStatus']) for h in hooks]}")
+
+
+def sync_codex(home, repo, tag):
+    env = {**os.environ, "CODEX_HOME": str(home)}
+    # Upstream's Codex catalog points the plugin at main, so a pinned upstream marketplace would still install main.
+    # A local one-entry catalog pins the plugin source itself.
+    market = HOME / ".local/state/ponytail-codex-marketplace"
+    catalog = {"name": "ponytail", "interface": {"displayName": "Ponytail"}, "plugins": [{
+        "name": "ponytail",
+        "source": {"source": "url", "url": f"https://github.com/{repo}.git", "ref": tag},
+        "policy": {"installation": "AVAILABLE", "authentication": "ON_INSTALL"},
+        "category": "Productivity",
+    }]}
+    (market / ".agents/plugins").mkdir(parents=True, exist_ok=True)
+    (market / ".agents/plugins/marketplace.json").write_text(json.dumps(catalog, indent=2) + "\n")
+    config_path = home / "config.toml"
+    config = tomllib.loads(config_path.read_text()) if config_path.exists() else {}
+    current = config.get("marketplaces", {}).get("ponytail")
+    if not current or Path(current.get("source", "")).resolve() != market.resolve():
+        if current:
+            saved = backup(config_path)
+            print(f"Codex: replacing the ponytail marketplace {current.get('source')} with {market} (backup {saved.name})")
+            run("codex", "plugin", "marketplace", "remove", "ponytail", env=env)
+        run("codex", "plugin", "marketplace", "add", str(market), env=env)
+    out = run("codex", "plugin", "add", PLUGIN, env=env)
+    root = re.search(r"Installed plugin root: (.+)", out)
+    if not root:
+        raise SyncError(f"codex plugin add printed no plugin root:\n{out}")
+    root = Path(root.group(1).strip())
+    approve_codex_hooks(env)
+    smoke("Codex", root, tag[1:], {"PLUGIN_DATA": str(home / "plugins/data/ponytail-ponytail")})
+
+
+def main():
+    try:
+        repo, tag = pin()
+        synced = 0
+        if shutil.which("claude"):
+            for config in (HOME / ".claude", HOME / ".plaude"):  # ~/.claude first: it doubles as project settings for ~.
+                if config.is_dir():
+                    sync_claude(config, repo, tag)
+                    synced += 1
+        codex_home = Path(os.environ.get("CODEX_HOME", HOME / ".codex"))
+        if shutil.which("codex") and codex_home.is_dir():
+            sync_codex(codex_home, repo, tag)
+            synced += 1
+        if not synced:
+            raise SyncError("No Claude Code account or Codex install found")
+    except (SyncError, OSError, subprocess.SubprocessError, json.JSONDecodeError, tomllib.TOMLDecodeError, KeyError) as error:
+        print(f"Ponytail sync failed: {error}", file=sys.stderr)
+        return 1
+    print(f"Ponytail {tag} synced. Restart running agents to load it.")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

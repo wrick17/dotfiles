@@ -8,6 +8,7 @@ import os
 from pathlib import Path
 import shutil
 import shlex
+import subprocess
 
 
 AI = Path(__file__).resolve().parent
@@ -100,7 +101,7 @@ def provision(config, profile, default_model, refresh=False):
     if not any(skills.iterdir()):
         for scope in ("common", profile):
             for skill in skills_in("third-party", scope):
-                if (skill / "SKILL.md").is_file() and not skill.name.startswith("ponytail"):
+                if (skill / "SKILL.md").is_file():
                     snapshot(skill, skills / skill.name)
     # Materialize third-party links, including nested links, without touching plugins or the user's own skills.
     mine = (AI / "skills/mine").resolve()
@@ -170,6 +171,22 @@ def provision(config, profile, default_model, refresh=False):
         if not found:
             session.append({"hooks": [{"type": "command", "command": command, "timeout": 10}]})
     write(settings_path, json.dumps(settings, indent=2) + "\n")
+
+    # Pulls that move the Ponytail pin re-sync the plugin through the tracked post-merge hook.
+    if (AI.parent / ".git").exists():
+        git = ["git", "-C", str(AI.parent)]
+        hooks_path = subprocess.run(git + ["config", "--get", "core.hooksPath"], capture_output=True, text=True).stdout.strip()
+        if not hooks_path:
+            # Setting core.hooksPath would silently disable hooks already active in the default hooks directory.
+            default = AI.parent / subprocess.run(git + ["rev-parse", "--git-path", "hooks"], capture_output=True, text=True, check=True).stdout.strip()
+            active = sorted(h.name for h in default.glob("*") if h.is_file() and os.access(h, os.X_OK) and h.suffix != ".sample")
+            if active:
+                print("Warning: " + str(default) + " has active hooks (" + ", ".join(active) + "), so core.hooksPath is not set and"
+                      " the Ponytail post-merge hook is not active. Move them to ai/git-hooks, then run: git config core.hooksPath ai/git-hooks")
+            else:
+                subprocess.run(git + ["config", "core.hooksPath", "ai/git-hooks"], check=True)
+        elif hooks_path != "ai/git-hooks":
+            print("Warning: core.hooksPath is " + hooks_path + "; the Ponytail post-merge hook is not active")
     print("Provisioned " + str(config))
     if backup.exists():
         print("Backup: " + str(backup))

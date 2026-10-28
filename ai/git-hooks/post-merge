@@ -1,0 +1,15 @@
+#!/bin/sh
+# After a pull, install the Ponytail plugin version pinned in sources.json when the pin changed.
+# Never fails the merge: a failed sync only warns.
+manifest=ai/skills/third-party/sources.json
+pin() {
+  python3 -c 'import json, sys; print(json.load(sys.stdin).get("plugins", {}).get("ponytail", {}).get("tag", ""))' 2>/dev/null
+}
+# A squash merge ($1 = 1) leaves HEAD unmoved and the merged manifest only in the working tree, which is what the sync reads.
+[ "$1" = 1 ] && before=HEAD || before=ORIG_HEAD
+after=$(pin 2>/dev/null < "$manifest")
+[ "$(git show "$before:$manifest" 2>/dev/null | pin)" = "$after" ] && exit 0
+echo "Ponytail pin changed to $after; syncing installed plugins..."
+ai/skills/sync-ponytail ||
+  echo "warning: Ponytail sync failed; the pull is kept. Fix the error above, then run ai/skills/sync-ponytail." >&2
+exit 0

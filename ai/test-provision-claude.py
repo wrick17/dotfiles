@@ -4,6 +4,7 @@
 import importlib.util
 import json
 from pathlib import Path
+import subprocess
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -83,6 +84,17 @@ class ProvisionTest(unittest.TestCase):
             left = {p.stat().st_ino for p in accounts[0].rglob("*") if p.is_file() and not {"plugins", "own"} & set(p.parts)}
             right = {p.stat().st_ino for p in accounts[1].rglob("*") if p.is_file() and not {"plugins", "own"} & set(p.parts)}
             self.assertFalse(left & right)
+            # core.hooksPath is set only when it would not disable hooks already active in .git/hooks.
+            subprocess.run(["git", "init", "-q", str(root)], check=True)
+            git_config = ["git", "-C", str(root), "config", "--get", "core.hooksPath"]
+            active = root / ".git/hooks/pre-commit"
+            active.write_text("#!/bin/sh\n")
+            active.chmod(0o755)
+            module.provision(personal, "work", "opus")
+            self.assertEqual(subprocess.run(git_config, capture_output=True, text=True).stdout, "")
+            active.unlink()
+            module.provision(personal, "work", "opus")
+            self.assertEqual(subprocess.run(git_config, capture_output=True, text=True).stdout.strip(), "ai/git-hooks")
 
 
 if __name__ == "__main__":
