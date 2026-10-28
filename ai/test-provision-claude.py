@@ -72,6 +72,8 @@ class ProvisionTest(unittest.TestCase):
             for config in accounts:
                 module.provision(config, "work", "opus")
             self.assertEqual((personal / "skills/test/SKILL.md").read_text(), "Personal edit")
+            module.provision(personal, "work", "opus", refresh=True)
+            self.assertEqual((personal / "skills/test/SKILL.md").read_text(), "Updated shared source")
             (own / "SKILL.md").write_text("Live edit")
             for config in accounts:
                 self.assertEqual((config / "skills/own/SKILL.md").read_text(), "Live edit")

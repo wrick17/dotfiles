@@ -11,7 +11,7 @@ If the report source is an already installed browser reader or a temporary
 browser injection from `reference/observability-page.md`, use
 `skills/mf/scripts/read-observability-report.mjs` first. Do not create a
 one-off CDP or WebSocket reader script. Do not try Playwright, Cypress,
-Electron, project e2e tests, the Codex in-app Browser skill, or any generic
+Electron, project e2e tests, a host's built-in browser, or any generic
 browser runtime before this built-in reader.
 
 When `reference/observability-page.md` found an installed observability plugin,

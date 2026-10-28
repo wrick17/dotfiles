@@ -1,41 +1,130 @@
-#!/bin/sh
-set -eu
+#!/usr/bin/env python3
+"""Fast-forward upstream skill checkouts, three-way merge their changes into the
+vendored copies under third-party/, and flag host- or model-specific wording."""
 
-git_command() {
-  if command -v rtk >/dev/null 2>&1; then
-    rtk proxy git "$@"
-  else
-    git "$@"
-  fi
-}
+import json
+import re
+import shutil
+import subprocess
+import sys
+from pathlib import Path
 
-update_checkout() {
-  repo=$1
-  expected_remote=$2
+ROOT = Path(__file__).resolve().parent / "third-party"
+SOURCES = ROOT / ".sources"
+MANIFEST = ROOT / "sources.json"
 
-  [ "$(git_command -C "$repo" remote get-url origin)" = "$expected_remote" ] || {
-    echo "Refusing unexpected origin: $repo" >&2
-    exit 1
-  }
-  [ "$(git_command -C "$repo" branch --show-current)" = main ] || {
-    echo "Refusing non-main branch: $repo" >&2
-    exit 1
-  }
+# Vendored skills stay agent agnostic: no product, host, or model names, and no host-specific tool names.
+BANNED = re.compile(
+    r"\b(cursor|grok|gemini|copilot|windsurf|cline|aider|devin|claude|anthropic|codex|opencode|openai"
+    r"|gpt-\d|sonnet|opus|haiku|subagent_type|AskUserQuestion|TodoWrite|poteto-mode)\b|\.mdc\b"
+    r"|\b(Task|Skill|Glob|Grep|Read|Edit|Write|Bash) tool\b",
+    re.IGNORECASE,
+)
+# CSS cursors are not the Cursor editor.
+CSS_CURSOR = re.compile(r"\bcursor\s*:|\.cursor\b", re.IGNORECASE)
+LINT_SKIP = {"archify"}  # Brand-logo data only; linked to its checkout, not vendored.
 
-  git_command -C "$repo" fetch origin main
-  git_command -C "$repo" merge --ff-only origin/main
-}
 
-update_checkout "$HOME/skills/third-party/.sources/cursor-plugins" git@github.com:cursor/plugins.git
-update_checkout "$HOME/skills/third-party/.sources/ponytail" git@github.com:DietrichGebert/ponytail.git
-update_checkout "$HOME/skills/third-party/.sources/mattpocock-skills" git@github.com:mattpocock/skills.git
-update_checkout "$HOME/skills/third-party/.sources/archify" https://github.com/tt-a1i/archify.git
+def git(repo, *args, check=True):
+    return subprocess.run(["git", "-C", str(repo), *args], check=check, text=True, capture_output=True).stdout
 
-printf '%s\n' \
-  'Plugin updates were not run.' \
-  'Claude Code supports:' \
-  '  rtk claude plugin marketplace update ponytail' \
-  '  rtk claude plugin update ponytail@ponytail --scope user --yes' \
-  'Codex supports only marketplace refresh:' \
-  '  rtk codex plugin marketplace upgrade ponytail' \
-  'The current Codex CLI has no plugin update command; use its Plugins UI to update ponytail@ponytail.'
+
+def show(repo, rev, path):
+    result = subprocess.run(["git", "-C", str(repo), "show", f"{rev}:{path}"], capture_output=True)
+    return result.stdout if result.returncode == 0 else None
+
+
+def update_checkout(name, spec):
+    repo = SOURCES / name
+    if git(repo, "remote", "get-url", "origin").strip() != spec["remote"]:
+        sys.exit(f"Refusing unexpected origin: {repo}")
+    if git(repo, "branch", "--show-current").strip() != spec["branch"]:
+        sys.exit(f"Refusing non-{spec['branch']} branch: {repo}")
+    if git(repo, "status", "--porcelain").strip():
+        sys.exit(f"Refusing dirty checkout, edit the vendored copy instead: {repo}")
+    git(repo, "fetch", "-q", "origin", spec["branch"])
+    git(repo, "merge", "-q", "--ff-only", f"origin/{spec['branch']}")
+    return git(repo, "rev-parse", "HEAD").strip()
+
+
+def merge_skill(name, spec, head):
+    """Apply upstream changes since spec['base'] to the vendored copy. Returns conflict notes."""
+    repo, base, path = SOURCES / spec["repo"], spec["base"], spec["path"]
+    target = ROOT / "common" / name
+    if base == head:
+        return []
+    if not git(repo, "ls-tree", head, path).strip():
+        spec["frozen"] = "removed upstream; kept as a frozen copy"
+        return [f"{name}: removed upstream, kept frozen"]
+    notes = []
+    changes = git(repo, "diff", "--name-status", "--no-renames", base, head, "--", path).splitlines()
+    for line in changes:
+        status, file = line.split("\t", 1)
+        local = target / Path(file).relative_to(path)
+        old, new = show(repo, base, file), show(repo, head, file)
+        if status == "A":
+            if local.exists() and local.read_bytes() != new:
+                notes.append(f"{name}: both added {local.relative_to(ROOT)}; kept local, upstream not applied")
+            else:
+                local.parent.mkdir(parents=True, exist_ok=True)
+                local.write_bytes(new)
+        elif status == "D":
+            if local.exists() and local.read_bytes() != old:
+                notes.append(f"{name}: upstream deleted {local.relative_to(ROOT)}, which has local edits; kept")
+            elif local.exists():
+                local.unlink()
+        elif not local.exists():
+            notes.append(f"{name}: upstream changed {file}, which was deleted locally; skipped")
+        else:
+            with_files = []
+            for label, data in (("base", old), ("theirs", new)):
+                temp = local.with_name(local.name + f".{label}.tmp")
+                temp.write_bytes(data)
+                with_files.append(temp)
+            result = subprocess.run(["git", "merge-file", "-L", "local", "-L", "base", "-L", "upstream",
+                                     str(local), *map(str, with_files)], capture_output=True)
+            for temp in with_files:
+                temp.unlink()
+            if result.returncode:
+                notes.append(f"{name}: conflict markers in {local.relative_to(ROOT)}")
+    spec["base"] = head
+    return notes
+
+
+def lint():
+    hits = []
+    for file in sorted((ROOT / "common").rglob("*")):
+        rel = file.relative_to(ROOT / "common")
+        if rel.parts[0] in LINT_SKIP or not file.is_file() or file.is_symlink() or file.name == "openai.yaml" or file.name.upper().startswith(("LICENSE", "NOTICE")):
+            continue
+        try:
+            text = file.read_text()
+        except UnicodeDecodeError:
+            continue
+        for number, line in enumerate(text.splitlines(), 1):
+            if BANNED.search(CSS_CURSOR.sub("", line)):
+                hits.append(f"{rel}:{number}: {line.strip()[:120]}")
+    return hits
+
+
+def main():
+    manifest = json.loads(MANIFEST.read_text())
+    if "--lint" not in sys.argv:
+        heads = {name: update_checkout(name, spec) for name, spec in manifest["repos"].items()}
+        notes = []
+        for name, spec in manifest["skills"].items():
+            if not spec.get("frozen"):
+                notes += merge_skill(name, spec, heads[spec["repo"]])
+        MANIFEST.write_text(json.dumps(manifest, indent=2) + "\n")
+        for note in notes:
+            print("NOTE " + note)
+    hits = lint()
+    for hit in hits:
+        print("HOST-SPECIFIC " + hit)
+    if hits:
+        print(f"{len(hits)} host-specific mentions to reword in vendored skills.")
+    return 1 if hits else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

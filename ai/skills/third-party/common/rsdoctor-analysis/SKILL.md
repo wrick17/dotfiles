@@ -31,7 +31,7 @@ Response order (required): High-Priority Issues -> Proposed Solutions -> Optiona
 - Optional verification workflow (only with user confirmation):
   - If the goal is to validate optimization impact, you may adjust `splitChunks` and re-run build to compare results.
   - Ask for user confirmation before modifying `splitChunks` and before re-running build.
-- In Codex, do not run `install` or `build` inside sandbox.
+- If the host runs commands in a sandbox, do not run `install` or `build` inside it.
 - For all analysis commands, provide recommendations only. Do not auto-apply optimization edits.
 
 ## Workflow

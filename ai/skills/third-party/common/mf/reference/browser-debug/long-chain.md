@@ -58,11 +58,11 @@ node ../scripts/browser-capture.mjs --tab-id "$TAB" --select "Select environment
 
 ## When element is not found
 
-Use `--dump-dom` to let Claude inspect the page and identify the correct selector:
+Use `--dump-dom` to let the agent inspect the page and identify the correct selector:
 
 ```bash
 node ../scripts/browser-capture.mjs --tab-id "$TAB" --dump-dom
-# Claude analyzes the DOM, then:
+# The agent analyzes the DOM, then:
 node ../scripts/browser-capture.mjs --tab-id "$TAB" --click "#profile-nav-btn"
 ```
 

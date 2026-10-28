@@ -123,7 +123,7 @@ ai/
       common/
       work/
       personal/
-    third-party/   # vendored copies and links into upstream checkouts
+    third-party/   # vendored agent-agnostic copies; archify links into its checkout
       common/
       work/
       personal/
@@ -167,9 +167,25 @@ claude plugin list
 
 The plugin supplies six namespaced skills, including `/ponytail:ponytail` and `/ponytail:ponytail-review`, plus its `SessionStart`, `UserPromptSubmit`, and `SubagentStart` hooks. Node.js must be available on the non-interactive shell's `PATH` for the hooks. Start a new Claude Code session or run `/reload-plugins` after installation. The preserved common source checkout remains available to other consumers.
 
-Upstream checkouts stay in `ai/skills/third-party/.sources`, outside the parent Git history, so their Git metadata and local edits are preserved. `~/skills/third-party/.sources` points there, and `~/skills/update` updates those existing checkouts. Restart running agents after changing instruction entrypoints, skill links, or hooks so new sessions load the updated setup.
+Third-party skills from pstack, mattpocock and Ponytail are vendored into `ai/skills/third-party/common` as tracked, agent-agnostic copies: no product, host, or model names in their instructions. `ai/skills/third-party/sources.json` records each skill's upstream repository, path, and the upstream commit its copy is based on. Archify stays a link into its checkout because its only host names are brand-logo data. The rstack family, `mf`, and `pdf` have no recorded upstream and are maintained by hand.
 
-On another machine, recreate these source checkouts before using the source-backed common skills:
+Upstream checkouts stay in `ai/skills/third-party/.sources`, outside the parent Git history, as clean mirrors. Do not edit them; edit the vendored copy. `~/skills/update` fast-forwards each checkout, three-way merges upstream changes since the recorded commit into the vendored copies, and then checks every vendored skill for host-specific wording:
+
+```sh
+rtk proxy ~/skills/update          # pull upstream, merge, then lint
+rtk proxy ~/skills/update --lint   # lint only
+rtk proxy python3 ~/skills/test-update.py
+```
+
+It prints `NOTE` lines for conflicts (markers left in the file), files that changed on both sides, and skills removed upstream, which it keeps as frozen copies. It prints `HOST-SPECIFIC` lines for wording to make generic, and exits non-zero while any remain. Review the diff, resolve the notes, and commit. Then refresh each Claude account's copies, which backs up the old ones:
+
+```sh
+rtk proxy python3 "$HOME/dotfiles/ai/provision-claude.py" "$HOME/.claude" --profile work --default-model haiku --refresh-third-party
+```
+
+Restart running agents after changing instruction entrypoints, skill links, or hooks so new sessions load the updated setup.
+
+On another machine, recreate these source checkouts before running `update`:
 
 ```sh
 mkdir -p "$HOME/dotfiles/ai/skills/third-party/.sources"
@@ -178,8 +194,6 @@ git clone git@github.com:DietrichGebert/ponytail.git "$HOME/dotfiles/ai/skills/t
 git clone git@github.com:mattpocock/skills.git "$HOME/dotfiles/ai/skills/third-party/.sources/mattpocock-skills"
 git clone https://github.com/tt-a1i/archify.git "$HOME/dotfiles/ai/skills/third-party/.sources/archify"
 ```
-
-The current upstream checkouts include local edits. Those edits remain in the local source repositories and need their own backup or publication to transfer to another machine.
 
 Claude Code's user-scoped MCP servers live in each explicit config directory's `.claude.json`, or the legacy `~/.claude.json` for implicit launches. These files remain separate from the account's instruction and skill snapshots. This machine configures `homeassistant`, `browser-mcp`, `devtools`, `t3-code`, and `openai-api-key-local-confirmation`. Vercel already connects through Claude's own connector at the same endpoint. The confirmation server uses the installed OpenAI Developers plugin's script, so update its absolute path after a plugin version change. Codex app runtimes, computer use, Codex Security, disabled servers, and ChatGPT-only connector transports are not copied. T3 also injects its own thread-scoped tools when it launches Claude.
 

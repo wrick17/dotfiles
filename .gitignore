@@ -3,3 +3,4 @@
 
 # Keep upstream skill repositories and their local edits independent.
 /ai/skills/third-party/.sources/
+__pycache__/

@@ -22,7 +22,7 @@ If MF is already configured (MFContext shows existing `remotes` or `exposes`), i
 
 ## Step 2: Gather parameters
 
-Ask the user the following questions (combine into one AskUserQuestion call):
+Ask the user the following questions (ask them together in one message):
 
 1. **Role** — What role should this app play?
    - `consumer` — loads modules from remote apps (default)

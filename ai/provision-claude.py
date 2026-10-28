@@ -18,7 +18,7 @@ def skills_in(owner, scope):
     return sorted(s for s in folder.iterdir() if s.is_dir()) if folder.is_dir() else []
 
 
-def provision(config, profile, default_model):
+def provision(config, profile, default_model, refresh=False):
     config = config.expanduser().absolute()
     if config.is_symlink():
         raise ValueError("Account directory must be independent, not a symlink")
@@ -87,7 +87,11 @@ def provision(config, profile, default_model):
                 target.chmod(source.stat().st_mode & 0o777)
 
     for scope in ("common", profile):
-        snapshot(AI / "skills/third-party" / scope, config / "skill-library" / scope)
+        library = config / "skill-library" / scope
+        if refresh and library.is_dir():
+            save(library)
+            shutil.rmtree(library)
+        snapshot(AI / "skills/third-party" / scope, library)
 
     skills = config / "skills"
     if skills.is_symlink():
@@ -114,6 +118,16 @@ def provision(config, profile, default_model):
                 materialize(child)
 
     materialize(skills)
+
+    # --refresh-third-party replaces account copies of third-party skills with the current dotfiles version.
+    if refresh:
+        for scope in ("common", profile):
+            for skill in skills_in("third-party", scope):
+                target = skills / skill.name
+                if target.is_dir() and not target.is_symlink():
+                    save(target)
+                    shutil.rmtree(target)
+                    snapshot(skill, target)
 
     # The user's own skills stay live: link each one so dotfiles edits apply at once.
     for scope in ("common", profile):
@@ -166,5 +180,6 @@ if __name__ == "__main__":
     parser.add_argument("config", type=Path)
     parser.add_argument("--profile", choices=("work", "personal"), required=True)
     parser.add_argument("--default-model", required=True)
+    parser.add_argument("--refresh-third-party", action="store_true", help="replace account copies of third-party skills, backing them up first")
     args = parser.parse_args()
-    provision(args.config, args.profile, args.default_model)
+    provision(args.config, args.profile, args.default_model, args.refresh_third_party)

@@ -24,7 +24,7 @@ Apply [orchestration.md](orchestration.md) together with the rules below. Claude
 
 ## Understand the work
 
-- Before implementing new features or ambiguous changes, use `mattpocock-skills:grill-me`. If unavailable in the skill catalog, read `~/skills/third-party/.sources/mattpocock-skills/skills/productivity/grill-me/SKILL.md`.
+- Before implementing new features or ambiguous changes, use `mattpocock-skills:grill-me`. If unavailable in the skill catalog, read `~/skills/third-party/common/grill-me/SKILL.md`.
 - Use existing answers and inspect available evidence before asking questions. Interview only while material uncertainty remains.
 - Finish requirements discovery with a clear outcome, constraints, scope, and observable completion criteria.
 - Proceed directly on clear fixes after tracing the affected flow and relevant callers.

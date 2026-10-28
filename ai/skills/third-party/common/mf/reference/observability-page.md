@@ -29,7 +29,7 @@ to install or keep the plugin in the project.
 ## Browser Control Rule
 
 For one-time page checks, use a fixed Chrome debug profile by default. Do not
-try the Codex Chrome plugin, do not operate the user's current tab directly, and
+try a host browser plugin, do not operate the user's current tab directly, and
 do not close or restart the user's daily Chrome. The fixed profile keeps its own
 cookies and local storage across runs, but it is separate from the user's daily
 Chrome profile. If the page needs login and this profile is not logged in yet,
@@ -52,7 +52,7 @@ Run only the minimal browser observation path:
    restart branch below.
 
 Do not consult memory, run project tests, create Cypress/Playwright files, use
-Electron/test browsers, use the Codex in-app Browser skill, or inspect broad
+Electron/test browsers, use a host's built-in browser, or inspect broad
 source history as a substitute for the browser report. A local demo URL still
 uses this installed-plugin report path. Existing project tests can be mentioned
 only when the user explicitly asks to run tests.
@@ -98,7 +98,7 @@ one-off `/tmp` profile unless the user explicitly asks for a stateless run.
 Permission and restart handling are part of this flow:
 
 - If running the helper or connecting to `127.0.0.1:<port>` is blocked by the
-  Codex sandbox or local process permissions, immediately rerun the same built-in
+  host sandbox or local process permissions, immediately rerun the same built-in
   helper or reader with tool permission/escalation. Do not stop to ask the user
   for a business decision, and do not create ad hoc WebSocket or CDP scripts in
   `/tmp`.
@@ -120,8 +120,8 @@ user to act:
 - If the page opens normally, continue directly to collector/read/analyze. Do
   not ask the user to log in just because the fixed profile is separate.
 
-Do not use Playwright, Cypress, Electron, project e2e tests, the Codex in-app
-Browser skill, or a generic browser automation runtime for the report read. The
+Do not use Playwright, Cypress, Electron, project e2e tests, a host's built-in
+browser, or a generic browser automation runtime for the report read. The
 skill already provides CDP helpers and collector helpers for this flow.
 
 Do not use a quick-completion heuristic for normal page observation. A single

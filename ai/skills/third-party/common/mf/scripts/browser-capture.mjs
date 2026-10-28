@@ -717,7 +717,7 @@ if (selectArg) {
   timings.selectMs = Date.now() - selectStart;
 }
 
-// ── DOM dump (for Claude to identify selectors) ───────────────────────────────
+// ── DOM dump (for the agent to identify selectors) ───────────────────────────────
 
 let domSnapshot = null;
 
