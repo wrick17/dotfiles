@@ -119,14 +119,19 @@ ai/
     agents.md
     claude.md
   skills/
-    common/
-    work/
-    personal/
-    .sources/
+    mine/          # the user's own skills, including rule skills
+      common/
+      work/
+      personal/
+    third-party/   # vendored copies and links into upstream checkouts
+      common/
+      work/
+      personal/
+      .sources/
     update
 ```
 
-`ai/common/global.md` holds shared rules. The common `agents.md` and `claude.md` add runtime rules. Work profiles import those rules and `ai/work/instructions.md`; personal profiles import only their common runtime rules. OpenCode's work profile imports the global and work rules directly.
+`ai/common/global.md` and `ai/common/orchestration.md` hold the always-loaded shared rules, kept short. Situational rules live in skills under `ai/skills/mine` (for example `delegation`, `browser-work`, `visual-reports`, and the work skills `sequoia-pr` and `github-accounts`); the core files list a trigger line for each. The common `agents.md` and `claude.md` add runtime rules. Work profiles import those rules and `ai/work/instructions.md`; personal profiles import only their common runtime rules. OpenCode's work profile imports the global and work rules directly.
 
 Choose the profile for each machine. Personal machines use `ai/personal/agents.md` for Codex and `ai/personal/claude.md` for Claude Code. Work machines use `ai/work/agents.md` and `ai/work/claude.md`, for every Claude account on that machine; the OpenCode work profile is `ai/work/opencode.md`.
 
@@ -140,7 +145,7 @@ Read and follow [agents.md](/Users/wrick/dotfiles/ai/personal/agents.md) before 
 
 For Claude Code on a personal machine, run the helper with `--profile personal` and the desired default model. Keep each account's `CLAUDE.md` and imported files local to that account. Merge additional rules into those local files.
 
-Skills are grouped into `ai/skills/common`, `ai/skills/work`, and `ai/skills/personal`. `sequoia-frontend` belongs to work machines. A machine's profile selects the initial skill set. Each Claude account has an independent materialized copy. Personal machines use common + personal. Plugin-managed skills keep their existing installations.
+Skills are grouped by owner, then profile: `ai/skills/mine/<profile>` holds the user's own skills and `ai/skills/third-party/<profile>` holds the rest. Every machine uses `common`; work machines add `work` and personal machines add `personal`. `sequoia-frontend` and the other work skills belong to work machines. Claude accounts link the user's own skills live, so edits apply at once, and keep an independent materialized copy of third-party skills. Plugin-managed skills keep their existing installations.
 
 On a fresh setup, link the shared skills directory into your home:
 
@@ -148,9 +153,9 @@ On a fresh setup, link the shared skills directory into your home:
 ln -s "$HOME/dotfiles/ai/skills" "$HOME/skills"
 ```
 
-If `~/skills` already exists as a directory, preserve its contents and update its `common`, `personal`, `work`, `.sources`, and `update` links to the matching entries under `ai/skills`. The work machine keeps that directory and its legacy skill aliases.
+If `~/skills` already exists as a directory, preserve its contents and update its `mine`, `third-party`, and `update` links to the matching entries under `ai/skills`. The work machine keeps that directory and its legacy skill aliases.
 
-Codex discovers user skills through individual links in `~/.agents/skills`; keep that existing setup. Claude Code discovers skills in each account's own `skills` directory. Use the provisioning helper to materialize them, preserving existing regular directories and unrelated entries. Fresh accounts receive common and selected-profile skills, excluding Ponytail skills supplied by the plugin. Existing accounts keep their current discovered skill set. Plugin-managed skills stay managed by their plugins.
+Codex discovers user skills through individual links in `~/.agents/skills`, each pointing at `../../skills/<owner>/<profile>/<skill>`; add a link for every skill in `mine/common` and the profile's `mine` folder. Claude Code discovers skills in each account's own `skills` directory. The provisioning helper links every skill in `mine/common` and `mine/<profile>` into each account on every run, backing up any copy it replaces. It materializes third-party skills, preserving existing regular directories and unrelated entries. Fresh accounts receive common and selected-profile third-party skills, excluding Ponytail skills supplied by the plugin. Existing accounts keep their current third-party skill set. Plugin-managed skills stay managed by their plugins.
 
 Install Ponytail for Claude Code at user scope through its official marketplace:
 
@@ -162,16 +167,16 @@ claude plugin list
 
 The plugin supplies six namespaced skills, including `/ponytail:ponytail` and `/ponytail:ponytail-review`, plus its `SessionStart`, `UserPromptSubmit`, and `SubagentStart` hooks. Node.js must be available on the non-interactive shell's `PATH` for the hooks. Start a new Claude Code session or run `/reload-plugins` after installation. The preserved common source checkout remains available to other consumers.
 
-Upstream checkouts stay in `ai/skills/.sources`, outside the parent Git history, so their Git metadata and local edits are preserved. `~/skills/.sources` points there, and `~/skills/update` updates those existing checkouts. Restart running agents after changing instruction entrypoints, skill links, or hooks so new sessions load the updated setup.
+Upstream checkouts stay in `ai/skills/third-party/.sources`, outside the parent Git history, so their Git metadata and local edits are preserved. `~/skills/third-party/.sources` points there, and `~/skills/update` updates those existing checkouts. Restart running agents after changing instruction entrypoints, skill links, or hooks so new sessions load the updated setup.
 
 On another machine, recreate these source checkouts before using the source-backed common skills:
 
 ```sh
-mkdir -p "$HOME/dotfiles/ai/skills/.sources"
-git clone git@github.com:cursor/plugins.git "$HOME/dotfiles/ai/skills/.sources/cursor-plugins"
-git clone git@github.com:DietrichGebert/ponytail.git "$HOME/dotfiles/ai/skills/.sources/ponytail"
-git clone git@github.com:mattpocock/skills.git "$HOME/dotfiles/ai/skills/.sources/mattpocock-skills"
-git clone https://github.com/tt-a1i/archify.git "$HOME/dotfiles/ai/skills/.sources/archify"
+mkdir -p "$HOME/dotfiles/ai/skills/third-party/.sources"
+git clone git@github.com:cursor/plugins.git "$HOME/dotfiles/ai/skills/third-party/.sources/cursor-plugins"
+git clone git@github.com:DietrichGebert/ponytail.git "$HOME/dotfiles/ai/skills/third-party/.sources/ponytail"
+git clone git@github.com:mattpocock/skills.git "$HOME/dotfiles/ai/skills/third-party/.sources/mattpocock-skills"
+git clone https://github.com/tt-a1i/archify.git "$HOME/dotfiles/ai/skills/third-party/.sources/archify"
 ```
 
 The current upstream checkouts include local edits. Those edits remain in the local source repositories and need their own backup or publication to transfer to another machine.

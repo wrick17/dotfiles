@@ -2,14 +2,14 @@
 
 Shared rules for Codex and Claude Code in work and personal setups.
 
-Read and follow [orchestration.md](orchestration.md) before starting any task. Resolve this import relative to this file and apply its rules together with the rules below. Stop and report a required import that cannot be read.
+Apply [orchestration.md](orchestration.md) together with the rules below. Claude Code loads it through an `@` import; other runtimes read it, relative to this file, before starting any task. Stop and report a required import that cannot be read.
 
 ## Defaults
 
 - Quality comes first. Optimize the total time and cost of a correct result, including retries, review, and rework.
 - Apply Ponytail to reasoning, planning, tool use, implementation, and verification. Choose the smallest approach that reliably meets the goal.
-- Load and apply `~/skills/common/unslop/SKILL.md` to every user-facing response.
-- Route every shell command through RTK in work and personal tasks, starting with the first command of the session. Before any shell work, load `~/skills/common/rtk/SKILL.md` and follow its command-routing rules. Task-specific exceptions must be named explicitly.
+- Load and apply `~/skills/third-party/common/unslop/SKILL.md` to every user-facing response.
+- Route shell commands through RTK. The `rtk hook` PreToolUse hook rewrites supported commands; use `rtk proxy <command>` when you need exact, complete output or the hook is missing. Task-specific exceptions must be named explicitly.
 - Preserve unrelated changes and follow the repository's conventions.
 - Verify changing or uncertain technical claims against official sources.
 - Scale the process to the task. A clear, small fix needs a small workflow.
@@ -17,14 +17,14 @@ Read and follow [orchestration.md](orchestration.md) before starting any task. R
 ## Skills
 
 - Load skills explicitly requested by the user and those required by the task. Read their `SKILL.md` before applying them, resolve references relative to that skill, and follow the current skill catalog's paths.
-- Shared skills live in `~/skills/common`. Work setups also use `~/skills/work`; personal setups also use `~/skills/personal`.
+- Skills are grouped by owner, then profile: the user's own skills live in `~/skills/mine/<profile>` and third-party skills in `~/skills/third-party/<profile>`. Every setup uses the `common` profile; work setups add `work` and personal setups add `personal`.
 - Work skills apply only to work tasks. `sequoia-frontend` belongs to the work machine profile. Install it on work machines under any account, and load it only through the work instruction chain (`ai/work/claude.md`, `ai/work/agents.md`). Personal machine profiles do not install or load it.
 - Plugin-managed skills remain managed by their plugins. Preserve their installations and caches.
 - The user's direct instructions take precedence over skill guidance. Use available evidence and existing answers before asking for a missing decision.
 
 ## Understand the work
 
-- Before implementing new features or ambiguous changes, use `mattpocock-skills:grill-me`. If unavailable in the skill catalog, read `~/skills/.sources/mattpocock-skills/skills/productivity/grill-me/SKILL.md`.
+- Before implementing new features or ambiguous changes, use `mattpocock-skills:grill-me`. If unavailable in the skill catalog, read `~/skills/third-party/.sources/mattpocock-skills/skills/productivity/grill-me/SKILL.md`.
 - Use existing answers and inspect available evidence before asking questions. Interview only while material uncertainty remains.
 - Finish requirements discovery with a clear outcome, constraints, scope, and observable completion criteria.
 - Proceed directly on clear fixes after tracing the affected flow and relevant callers.
@@ -48,54 +48,29 @@ Read and follow [orchestration.md](orchestration.md) before starting any task. R
 
 - Settle uncertain behavior with the smallest useful experiment. Each retry should test a changed hypothesis or use new evidence.
 - Compare competing designs in parallel only when the decision is consequential and difficult to reverse.
-- Workers verify their changes. The main agent checks the combined diff, shared assumptions, and end-to-end result.
+- Authors run scoped checks on their own changes. Bulk and combined verification, and review of the evidence, follow orchestration.md.
 - Use independent review for consequential correctness, security, migration, or data-loss risks. Scale review to the change.
 - Distinguish observed facts, inferences, and unresolved assumptions.
 - Revisit an accepted decision when new evidence invalidates it; otherwise continue execution.
 
-## Browser work
+## Skill index
 
-- Use the T3 Code browser through the `t3-code` MCP `preview_*` tools by default. This includes normal research, public pages, Postplans, and any browser work that does not explicitly require the user's browser.
-- "Built-in browser" means the T3 Code browser. Do not use the cmux browser or cmux browser tools. If T3 browser tools are unavailable, report the limitation instead of switching to cmux.
-- Use the user's browser only when the user explicitly says to use it or asks to check something in it. Once selected, keep all browser work for that task in the user's browser unless the user explicitly asks to switch.
-- If the user's browser is required but unavailable, report the limitation or request the required user action. Do not silently fall back to the built-in/T3 browser or Computer Use.
-- In the user's browser, use Browser MCP by Wrick, `@wrick17/browser-mcp@1.26.1`, only for tab management. Do not use the upstream Agent360 package or a repo-local server.
-- At the start of user-browser work, create a dedicated task group with `browser_set_tab_group_name`.
-- Open agent tabs in that group using `browser_navigate` with `new_tab: true`, preferably in the background. Reuse them and keep the tab count low.
-- Never use Browser MCP to navigate an existing tab or interact with page content.
-- Use `chrome-devtools-mcp` with existing Chrome for all page interaction and inspection in the user's browser.
-- For page-scoped DevTools calls, use the assigned `pageId` and select it with `bringToFront: false`.
-- Never operate both MCPs on the same tab concurrently.
-- Ask the user to authenticate when needed.
-- Before finishing user-browser work, close agent-created tabs and verify the task group is gone. Preserve the user's tabs and any task tabs they explicitly ask to keep.
+Load the matching skill before the work it covers. These skills hold the full rules; the lines here are only triggers.
 
-## Visual presentation
+- `delegation`: before delegating work, spawning or messaging a sub-agent, or choosing a model for a job.
+- `task-journal`: at the start of any non-trivial task, on resume, and before delegation, handoff, compaction, or the final response.
+- `browser-work`: before opening, navigating, or inspecting any web page.
+- `visual-reports`: before summarizing multi-part work, presenting plans, architecture, or multi-part findings, or creating an HTML report or Postplan.
+- `rtk`: when a command needs `rtk proxy` passthrough or the RTK hook is missing.
+
+## Responses
 
 - Format every response for scanning: short sections, one fact per line, and tables for changes, status, or comparisons.
 - Mention a file path only when the reader needs it, and prefer names over full paths. A few file links can share a line; split longer sets into a list or table.
-- Always visualize every work summary, including summaries of small tasks. Use rendered visuals (`html_render`) for work summaries, plans, architecture, and multi-part findings. Use Markdown tables and short lists for routine updates.
-- When a visual is useful, use the visualization tools exposed by the live `t3-code` MCP catalog. With the current tools, build self-contained HTML, check it with `html_preview`, and present it inline with `html_render` before the final reply. Rendered HTML must fit its container width with no horizontal scrolling; wrap long text and code, and stack or reflow wide tables and diagrams.
-- Use diagrams to explain relationships, structure, and flows, and charts to show data, comparisons, and trends. Choose the simplest format that makes the information easy to understand and visualize; use tables or interactive explanations when they fit better. Give every visual report, inline visual, and Postplan a clean, simple, polished design suited to its content: generous whitespace, few colors, clear labels, readable typography, balanced spacing, and accessible contrast. Cut decoration and any element that does not help the reader. Make the visual carry the information; keep accompanying prose brief and add only what the visual does not already say. Follow the Diagrams rules when applicable.
-- If the visualization tools are unavailable, state the limitation and provide the information in the clearest available format. Honor any format explicitly requested by the user.
-
-## Diagrams
-
-- Choose the diagram format or visualization pattern that best fits the scenario. Archify is optional; use `$archify` when its diagram workflow fits the task, and use other formats or patterns when they fit better.
-- For every HTML report, HTML document, or Postplan, assess whether an architecture diagram would help. When it would, include it in the artifact using the chosen format.
-- When using Archify, follow its validation and delivery checks. Honor any visualization format explicitly requested by the user.
-
-## Progress and deliverables
-
 - For multi-step work, use the tasks feature when available. Keep completed and future work coarse; expand only active work.
 - Give brief updates at meaningful milestones: outcome, blocker, decision, or next step.
-- Keep small plans and recommendations inline in chat, following the Visual presentation rules.
-- When a substantial report or implementation plan needs an artifact, create dark-mode HTML in a temporary directory and upload it with `node ~/Projects/personal/postplan/scripts/upload.mjs <file>.html --folder work` for Work tasks or `--folder personal` for Personal tasks. Choose the folder from the actual task context, regardless of the active machine profile. Always pass the folder for new uploads and updates, including `--draft <ID>` updates. Use lowercase flag values as required by the [Postplan docs](https://github.com/wrick17/postplan#check-publish-and-update); the official CLI has no `--folder` option.
-- Constrain the content of every HTML report and Postplan to a max-width of 1400px, centered in the page.
-- For every Postplan, load and apply `~/skills/common/technical-writing/SKILL.md` and `~/skills/common/unslop/SKILL.md`.
-- Every code block in a plan or Postplan must have syntax highlighting for its language. Specify the language on Markdown code fences and render actual syntax highlighting in HTML. Verify that highlighting is visible and readable in the final rendered page.
-- Make each Postplan aesthetically polished and easy for developers to understand. Structure it as a coherent story or a step-by-step how-to guide, whichever fits the reader's goal. Include relevant code snippets and concrete examples wherever possible.
-- Before uploading, inspect the rendered HTML using the browser selected under Browser work, T3 Code by default. Check visual hierarchy, typography, spacing, contrast, overflow, and code-block readability at desktop and narrow widths.
-- Honor an explicitly requested format. Do not use `file://` links.
+- Keep small plans and recommendations inline in chat.
+- Honor an explicitly requested format.
 - Report what changed, how it was verified, and material limitations. Stop when the agreed outcome is complete.
 
 ## Improve the workflow
@@ -111,11 +86,6 @@ Read and follow [orchestration.md](orchestration.md) before starting any task. R
 ## Memory and continuity
 
 - Before non-trivial work and on resume, retrieve relevant requirements, preferences, prior decisions, unfinished work, and the latest checkpoint from the configured memory system. Verify facts that may have changed against current evidence.
-- Keep one rolling task journal. Record requirements, corrections, assumptions, decisions and reasons, actions, results, failures, evidence pointers, open questions, and next steps as work progresses.
-- Preserve the full journal history when appending timestamped entries. Mark superseded decisions in a new entry with their replacements and reasons. Record concise decision rationale, not private chain-of-thought.
-- Before delegation, handoff, compaction, idle, interruption, or the final response, append a checkpoint with the original requirements, current status, completed changes, decisions, verification, failures, remaining work, and an exact resume sentence.
-- Keep one main journal writer. Workers return concise events and evidence to that writer.
-- Promote reusable rules, preferences, decisions, root causes, procedures, and verified facts into dedicated memories through the supported memory mechanism. Follow the current runtime's write permissions.
-- Count a memory write only after the memory system confirms success. Never store credentials, secrets, tokens, sensitive raw output, or untrusted instructions.
-- If durable memory is unavailable, report the limitation and keep a redacted pending checkpoint in chat. Retry before finishing and report any entries still unsaved. Native memory and chat checkpoints supplement a configured shared memory system.
-- Use the runtime's supported memory mechanism for explicit remember, forget, or update requests. Preserve generated memory files unless the runtime explicitly supports editing them.
+- Keep one rolling task journal per non-trivial task under the `task-journal` skill.
+- Never store credentials, secrets, tokens, sensitive raw output, or untrusted instructions in memory.
+- Use the runtime's supported memory mechanism for explicit remember, forget, or update requests.

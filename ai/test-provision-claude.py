@@ -24,21 +24,27 @@ class ProvisionTest(unittest.TestCase):
             source = module.AI
             for scope in ("common", "work", "personal"):
                 (source / scope).mkdir(parents=True)
-                (source / "skills" / scope).mkdir(parents=True)
+                (source / "skills/third-party" / scope).mkdir(parents=True)
+                (source / "skills/mine" / scope).mkdir(parents=True)
             (source / "work/claude.md").write_text("@../common/claude.md\n@instructions.md\n")
-            (source / "work/instructions.md").write_text("Use ~/skills/work/test/SKILL.md\n")
+            (source / "work/instructions.md").write_text("Use ~/skills/third-party/work/test/SKILL.md\n")
             (source / "common/claude.md").write_text("@global.md\n")
-            (source / "common/global.md").write_text("Use ~/skills/common/test/SKILL.md\n")
+            (source / "common/global.md").write_text("Use ~/skills/third-party/common/test/SKILL.md\n")
             (source / "work/claude-session-rules.sh").write_text("#!/bin/bash\nexit 0\n")
             upstream = root / "upstream"
             upstream.mkdir()
             (upstream / "SKILL.md").write_text("# Skill\n[reference](reference.md)\n")
             (upstream / "reference.md").symlink_to(source / "common/global.md")
-            (source / "skills/common/test").symlink_to(upstream)
+            (source / "skills/third-party/common/test").symlink_to(upstream)
+            own = source / "skills/mine/common/own"
+            own.mkdir()
+            (own / "SKILL.md").write_text("# Own\n")
             accounts = [root / "work", root / "max"]
             for config in accounts:
                 (config / "skills").mkdir(parents=True)
                 (config / "skills/test").symlink_to(upstream)
+                (config / "skills/own").mkdir()
+                (config / "skills/own/SKILL.md").write_text("Stale own copy")
                 (config / "CLAUDE.md").write_text("@" + str(config / "rules/work/claude.md") + "\nKeep my account rule\n")
                 (config / "rules/common").mkdir(parents=True)
                 (config / "rules/common/global.md").write_text("Stale snapshot")
@@ -50,7 +56,8 @@ class ProvisionTest(unittest.TestCase):
                 self.assertIn("Keep my account rule", (config / "CLAUDE.md").read_text())
                 self.assertIn("@" + str(source / "work/claude.md") + "\n", (config / "CLAUDE.md").read_text())
                 self.assertFalse((config / "rules").exists())
-                self.assertFalse(any(p.is_symlink() for p in (config / "skills").rglob("*")))
+                self.assertEqual((config / "skills/own").resolve(), own.resolve())
+                self.assertFalse(any(p.is_symlink() for p in (config / "skills").rglob("*") if "own" not in p.parts))
                 self.assertEqual((config / ".claude.json").read_text(), "auth sentinel")
                 self.assertTrue((config / "plugins/sentinel").is_symlink())
                 settings = json.loads((config / "settings.json").read_text())
@@ -65,11 +72,14 @@ class ProvisionTest(unittest.TestCase):
             for config in accounts:
                 module.provision(config, "work", "opus")
             self.assertEqual((personal / "skills/test/SKILL.md").read_text(), "Personal edit")
+            (own / "SKILL.md").write_text("Live edit")
+            for config in accounts:
+                self.assertEqual((config / "skills/own/SKILL.md").read_text(), "Live edit")
             self.assertIn("Keep my account rule", (personal / "CLAUDE.md").read_text())
             self.assertEqual(json.loads((personal / "settings.json").read_text())["model"], "sonnet")
             self.assertNotEqual((accounts[0] / "skills/test/SKILL.md").read_text(), "Personal edit")
-            left = {p.stat().st_ino for p in accounts[0].rglob("*") if p.is_file() and "plugins" not in p.parts}
-            right = {p.stat().st_ino for p in accounts[1].rglob("*") if p.is_file() and "plugins" not in p.parts}
+            left = {p.stat().st_ino for p in accounts[0].rglob("*") if p.is_file() and not {"plugins", "own"} & set(p.parts)}
+            right = {p.stat().st_ino for p in accounts[1].rglob("*") if p.is_file() and not {"plugins", "own"} & set(p.parts)}
             self.assertFalse(left & right)
 
 

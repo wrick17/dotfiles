@@ -4,7 +4,7 @@
 
 Apply the imported rules together with this file. Stop and report a required import that cannot be read.
 
-Use `~/skills/common` and `~/skills/personal` for personal tasks.
+Use `~/skills/mine/common`, `~/skills/mine/personal`, `~/skills/third-party/common`, and `~/skills/third-party/personal` for personal tasks.
 
 ## Native memory and checkpoints
 

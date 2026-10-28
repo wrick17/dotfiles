@@ -20,7 +20,8 @@ resolve() {
 visit() {
   local file="$1" depth="$2" target line seen
   local targets=()
-  [ "$depth" -gt 5 ] && return
+  # Claude Code expands @imports up to four hops; it never follows Markdown links.
+  [ "$depth" -gt 4 ] && return
   for seen in ${files[@]+"${files[@]}"}; do [ "$seen" = "$file" ] && return; done
   if [ ! -r "$file" ]; then
     missing+=("$file")
@@ -36,9 +37,6 @@ visit() {
         ;;
     esac
   done < "$file"
-  while IFS= read -r target; do
-    case "$target" in *://*) ;; *) targets+=("$target") ;; esac
-  done < <(grep -o '\]([^)]*\.md)' "$file" | sed 's/^](//; s/)$//')
   for target in ${targets[@]+"${targets[@]}"}; do
     visit "$(resolve "$file" "$target")" $((depth + 1))
   done

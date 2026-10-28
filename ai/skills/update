@@ -26,10 +26,10 @@ update_checkout() {
   git_command -C "$repo" merge --ff-only origin/main
 }
 
-update_checkout "$HOME/skills/.sources/cursor-plugins" git@github.com:cursor/plugins.git
-update_checkout "$HOME/skills/.sources/ponytail" git@github.com:DietrichGebert/ponytail.git
-update_checkout "$HOME/skills/.sources/mattpocock-skills" git@github.com:mattpocock/skills.git
-update_checkout "$HOME/skills/.sources/archify" https://github.com/tt-a1i/archify.git
+update_checkout "$HOME/skills/third-party/.sources/cursor-plugins" git@github.com:cursor/plugins.git
+update_checkout "$HOME/skills/third-party/.sources/ponytail" git@github.com:DietrichGebert/ponytail.git
+update_checkout "$HOME/skills/third-party/.sources/mattpocock-skills" git@github.com:mattpocock/skills.git
+update_checkout "$HOME/skills/third-party/.sources/archify" https://github.com/tt-a1i/archify.git
 
 printf '%s\n' \
   'Plugin updates were not run.' \

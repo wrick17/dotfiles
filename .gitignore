@@ -2,4 +2,4 @@
 .DS_Store
 
 # Keep upstream skill repositories and their local edits independent.
-/ai/skills/.sources/
+/ai/skills/third-party/.sources/

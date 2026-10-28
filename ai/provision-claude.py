@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Seed independent Claude account files; import shared rules from dotfiles; preserve account edits on later runs."""
+"""Seed independent Claude account files; import shared rules and link the user's own skills from dotfiles; preserve account edits on later runs."""
 
 import argparse
 from datetime import datetime, timezone
@@ -13,6 +13,11 @@ import shlex
 AI = Path(__file__).resolve().parent
 
 
+def skills_in(owner, scope):
+    folder = AI / "skills" / owner / scope
+    return sorted(s for s in folder.iterdir() if s.is_dir()) if folder.is_dir() else []
+
+
 def provision(config, profile, default_model):
     config = config.expanduser().absolute()
     if config.is_symlink():
@@ -23,19 +28,17 @@ def provision(config, profile, default_model):
     )
     replacements = {}
     for scope in ("common", "work", "personal"):
-        source = AI / "skills" / scope
-        for skill in source.iterdir():
-            if skill.is_dir():
-                local = str(config / "skill-library" / scope / skill.name)
-                replacements[str(skill.resolve())] = local
-                try:
-                    relative = skill.resolve().relative_to((AI / "skills").resolve())
-                except ValueError:
-                    continue
-                replacements["~/skills/" + str(relative)] = local
-                replacements[str(Path.home() / "skills" / relative)] = local
+        for skill in skills_in("third-party", scope):
+            local = str(config / "skill-library" / scope / skill.name)
+            replacements[str(skill.resolve())] = local
+            try:
+                relative = skill.resolve().relative_to((AI / "skills").resolve())
+            except ValueError:
+                continue
+            replacements["~/skills/" + str(relative)] = local
+            replacements[str(Path.home() / "skills" / relative)] = local
         for prefix in ("~/skills/", str(Path.home() / "skills") + "/", str(AI / "skills") + "/"):
-            replacements[prefix + scope] = str(config / "skill-library" / scope)
+            replacements[prefix + "third-party/" + scope] = str(config / "skill-library" / scope)
     replacements = sorted(replacements.items(), key=lambda pair: len(pair[0]), reverse=True)
 
     def localize(text):
@@ -84,7 +87,7 @@ def provision(config, profile, default_model):
                 target.chmod(source.stat().st_mode & 0o777)
 
     for scope in ("common", profile):
-        snapshot(AI / "skills" / scope, config / "skill-library" / scope)
+        snapshot(AI / "skills/third-party" / scope, config / "skill-library" / scope)
 
     skills = config / "skills"
     if skills.is_symlink():
@@ -92,11 +95,15 @@ def provision(config, profile, default_model):
     skills.mkdir(exist_ok=True)
     if not any(skills.iterdir()):
         for scope in ("common", profile):
-            for skill in (AI / "skills" / scope).iterdir():
+            for skill in skills_in("third-party", scope):
                 if (skill / "SKILL.md").is_file() and not skill.name.startswith("ponytail"):
                     snapshot(skill, skills / skill.name)
-    # Materialize existing links, including nested links, without touching plugins.
+    # Materialize third-party links, including nested links, without touching plugins or the user's own skills.
+    mine = (AI / "skills/mine").resolve()
+
     def materialize(path):
+        if path.is_symlink() and path.resolve().is_relative_to(mine):
+            return
         if path.is_symlink():
             source = path.resolve(strict=True)
             save(path)
@@ -107,6 +114,17 @@ def provision(config, profile, default_model):
                 materialize(child)
 
     materialize(skills)
+
+    # The user's own skills stay live: link each one so dotfiles edits apply at once.
+    for scope in ("common", profile):
+        for skill in skills_in("mine", scope):
+            target = skills / skill.name
+            if target.is_symlink() and target.resolve() == skill.resolve():
+                continue
+            if target.exists() or target.is_symlink():
+                save(target)
+                target.unlink() if target.is_symlink() or not target.is_dir() else shutil.rmtree(target)
+            target.symlink_to(skill)
 
     # Rules load straight from dotfiles; drop rule snapshots left by older runs.
     entry = config / "CLAUDE.md"
