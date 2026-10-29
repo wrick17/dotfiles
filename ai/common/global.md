@@ -57,6 +57,7 @@ Apply [orchestration.md](orchestration.md) together with the rules below. Claude
 
 Load the matching skill before the work it covers. These skills hold the full rules; the lines here are only triggers.
 
+- `parallel-breakdown`: mandatory in every main thread at the start of a bigger task such as a feature, architecture, tests, tooling, verification, or docs and rules.
 - `delegation`: before delegating work, spawning or messaging a sub-agent, or choosing a model for a job.
 - `task-journal`: at the start of any non-trivial task, on resume, and before delegation, handoff, compaction, or the final response.
 - `browser-work`: before opening, navigating, or inspecting any web page.
