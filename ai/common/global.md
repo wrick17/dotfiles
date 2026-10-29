@@ -8,7 +8,7 @@ Apply [orchestration.md](orchestration.md) together with the rules below. Claude
 
 - Quality comes first. Optimize the total time and cost of a correct result, including retries, review, and rework.
 - Apply Ponytail to reasoning, planning, tool use, implementation, and verification. Choose the smallest approach that reliably meets the goal.
-- Load and apply `~/skills/third-party/common/unslop/SKILL.md` to every user-facing response.
+- Load and apply the `unslop` skill to every user-facing response.
 - Route shell commands through RTK. The `rtk hook` PreToolUse hook rewrites supported commands; use `rtk proxy <command>` when you need exact, complete output or the hook is missing. Task-specific exceptions must be named explicitly.
 - Preserve unrelated changes and follow the repository's conventions.
 - Verify changing or uncertain technical claims against official sources.
@@ -16,7 +16,7 @@ Apply [orchestration.md](orchestration.md) together with the rules below. Claude
 
 ## Skills
 
-- Load skills explicitly requested by the user and those required by the task. Read their `SKILL.md` before applying them, resolve references relative to that skill, and follow the current skill catalog's paths.
+- Load skills explicitly requested by the user and those required by the task. Resolve each skill through the current skill catalog first; use the `~/skills` layout below only when the catalog has no matching entry. Read its `SKILL.md` before applying it and resolve references relative to that skill. Skill references are not recursive instruction imports; a missing fallback path does not block a skill available through the catalog. Stop and report a required skill only when neither location is readable.
 - Skills are grouped by owner, then profile: the user's own skills live in `~/skills/mine/<profile>` and third-party skills in `~/skills/third-party/<profile>`. Every setup uses the `common` profile; work setups add `work` and personal setups add `personal`.
 - Work skills apply only to work tasks. `sequoia-frontend` belongs to the work machine profile. Install it on work machines under any account, and load it only through the work instruction chain (`ai/work/claude.md`, `ai/work/agents.md`). Personal machine profiles do not install or load it.
 - Plugin-managed skills remain managed by their plugins. Preserve their installations and caches.

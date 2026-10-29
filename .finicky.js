@@ -25,6 +25,7 @@ const urls = [
 	"claude.ai/*",
 	"claude.com/*",
 	"github.com/Sequoia-US/*",
+	"*.workos.com*",
 	"teams.public.onecdn.static.microsoft/*"
 ];
 
