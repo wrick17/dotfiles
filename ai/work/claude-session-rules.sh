@@ -62,7 +62,6 @@ The rules from $root are already loaded through its @imports. Follow them; do no
 Before acting on any non-trivial task:
 1. Apply the memory and journal rules from those files. Recall prior context and open or resume the task journal before the first action.
 2. Load each skill the rules require before applying it.
-3. Apply the orchestration rules before choosing between doing work in the main thread and delegating it.
-Do not skip these steps because a task looks small. The rule files decide what counts as trivial.
+3. Apply the task tiers in orchestration.md to choose between doing the work in the main thread and running the delegated pipeline.
 EOF
 exit 0
