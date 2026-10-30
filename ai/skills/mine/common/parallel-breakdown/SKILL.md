@@ -12,12 +12,13 @@ Mandatory for every main thread. Apply with `orchestration.md` and the `delegati
 1. Size the task. A bigger task has more than one deliverable, module, file group, or check. A task that fits the main thread's bounded allowance stays one chunk.
 2. Split along existing seams: module, layer, package, service, test suite, platform, or doc set. Each chunk gets one outcome, its owned files or state, its inputs from other chunks, and its completion check. Merge a chunk into its neighbour when it is too small to repay its contract.
 3. Map dependencies. Shared interfaces (types, API contracts, schemas, file layout, fixtures) become the first chunk. For a new feature, the smallest end-to-end path comes before the chunks that build on it.
-4. Group chunks into waves. A wave holds every chunk whose dependencies are met, with one writer per shared file or resource.
+4. Mark a chunk ready once its dependencies have landed with no unresolved blocking findings. Hold a chunk whose dependency has a blocking finding until the fix lands and passes its required checks. Keep one writer per shared file or resource.
 5. Record the breakdown in the task list: chunk, owner role, dependencies, and check.
-6. Dispatch each wave in one batch so its chunks run concurrently. Integrate results as they arrive and start the next wave as soon as its dependencies land.
-7. After the last wave, send the combined affected flow to verification under `orchestration.md`.
+6. Dispatch all ready chunks in one batch so they run concurrently, then dispatch each further chunk the moment it becomes ready. Assign each writer's next chunk under the `delegation` skill.
+7. As each chunk lands, send it to review and verification while its author starts its next chunk. Sol reviews consequential chunks for real defects; Terra verifies each independently testable chunk. Run these checks on a fixed snapshot of the landed chunk and its dependencies, such as a detached worktree of a `git stash create` ref taken after staging the chunk's new files, and name that snapshot in every finding and result. Route findings back to the author under the `delegation` skill. Repeat this step whenever a fix lands.
+8. After every chunk and fix has landed and passed its required review and verification, send the combined affected flow to Terra for final verification.
 
-Done when every part of the agreed scope belongs to exactly one chunk, every chunk has an owner and a check, and every wave was dispatched together.
+Done when every part of the agreed scope belongs to exactly one chunk, every chunk has an owner and a check, every chunk was dispatched as soon as it became ready, and final verification ran after the last fix landed.
 
 ## Common splits
 
