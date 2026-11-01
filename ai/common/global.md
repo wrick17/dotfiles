@@ -32,12 +32,14 @@ Apply [orchestration.md](orchestration.md) together with the rules below. Claude
 
 ## Implement and verify
 
-- Use a fail-fast strategy. Get the smallest main flow working or fix the reported bug first, verify it works, then handle relevant edge cases, stability, and polish at the end after the user confirms that the change works. Fix real defects: correctness, regressions, security, data loss, and gaps in the agreed scope. Do not loop on review or verification to chase minor polish or nits; deliver once the change works and causes no regressions.
+- Implement first, then test. Build the whole agreed scope before testing any of it. During implementation, run only checks that show the code builds and loads: compile, type check, lint, or one smoke run of the touched path. Do not run test suites or write new tests until implementation is complete. A bug fix still reproduces the bug once before the fix.
+- Then run one test phase over the whole scope. Write the needed tests, run every required check, and collect all failures. Fix them in one batch, then re-run only the failed checks and those the fixes could affect. Never alternate implement, test, and fix in small steps.
+- Fix real defects: correctness, regressions, security, data loss, and gaps in the agreed scope. Do not loop on review or verification to chase minor polish or nits; deliver once the change works and causes no regressions. Leave minor polish until the user confirms that the change works.
 - Apply security controls, trust-boundary validation, accessibility basics, and data-loss protections from the start.
-- For a new feature, establish the smallest working end-to-end path before spreading dependent implementation across agents.
+- For a new feature, build the smallest end-to-end path before spreading dependent implementation across agents. This sets build order only; testing still waits for the test phase.
 - Reuse existing code, standard libraries, native platform features, and installed dependencies before adding machinery.
 - Fix bugs at their shared cause. Inspect sibling callers before choosing the location of a fix.
-- Use the smallest meaningful check during iteration. Focus tests on important behavior, shared contracts, and demonstrated bugs or risks.
+- Focus tests on important behavior, shared contracts, and demonstrated bugs or risks.
 - Reuse existing test files and helpers. Add a test case only when it catches an important failure that existing checks would miss; create a new test file only when an existing suite cannot reasonably cover it.
 - Avoid tests that mirror implementation details, duplicate coverage, or enumerate speculative edge cases. Excess tests can narrow design exploration and increase iteration time and cost. Choose useful coverage over test count.
 - Run required repository checks and verify the combined affected flow before declaring completion.
