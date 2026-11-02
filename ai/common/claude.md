@@ -13,7 +13,7 @@ Apply the imported rules together with this file. Stop and report a required imp
 
 ## Native memory
 
-- Consult available Claude Code native memory for relevant prior work. Use its supported memory mechanism for explicit remember, forget, or update requests.
+- Claude Code native memory is the backup to Agent Memory. Consult it when Agent Memory is unavailable or lacks relevant prior work.
 - Use `claude-code` as the runtime label in task-journal names.
 
 ## Progress reporting

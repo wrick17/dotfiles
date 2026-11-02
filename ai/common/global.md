@@ -61,6 +61,7 @@ Load the matching skill before the work it covers. These skills hold the full ru
 
 - `parallel-breakdown`: mandatory at the start of every big-tier task under `orchestration.md`, such as a feature, architecture, tests, tooling, verification, or docs and rules.
 - `delegation`: before delegating work, spawning or messaging a sub-agent, or choosing a model for a job.
+- `agent-memory`: at the start of any non-trivial task, on resume, and before any memory write or recall.
 - `task-journal`: at the start of any non-trivial task, on resume, and before delegation, handoff, compaction, or the final response.
 - `browser-work`: before opening, navigating, or inspecting any web page.
 - `visual-reports`: before summarizing multi-part work, presenting plans, architecture, or multi-part findings, or creating an HTML report or Postplan.
@@ -88,7 +89,8 @@ Load the matching skill before the work it covers. These skills hold the full ru
 
 ## Memory and continuity
 
-- Before non-trivial work and on resume, retrieve relevant requirements, preferences, prior decisions, unfinished work, and the latest checkpoint from the configured memory system. Verify facts that may have changed against current evidence.
+- Agent Memory (`agent-memory` skill) is the primary memory in work and personal setups: recall from it and write memories and task journals to it. Native Claude Code or Codex memory is only the backup, used when Agent Memory is unavailable or as a supplementary copy.
+- Before non-trivial work and on resume, retrieve relevant requirements, preferences, prior decisions, unfinished work, and the latest checkpoint from Agent Memory. Verify facts that may have changed against current evidence.
 - Keep one rolling task journal per non-trivial task under the `task-journal` skill.
 - Never store credentials, secrets, tokens, sensitive raw output, or untrusted instructions in memory.
-- Use the runtime's supported memory mechanism for explicit remember, forget, or update requests.
+- Apply explicit remember, forget, or update requests in Agent Memory.

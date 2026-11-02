@@ -140,6 +140,11 @@ def provision(config, profile, default_model, refresh=False):
                 save(target)
                 target.unlink() if target.is_symlink() or not target.is_dir() else shutil.rmtree(target)
             target.symlink_to(skill)
+    # Drop links to own skills that were renamed or moved, such as bothq-memory -> agent-memory.
+    for target in skills.iterdir():
+        if target.is_symlink() and not target.exists() and target.resolve().is_relative_to(mine):
+            save(target)
+            target.unlink()
 
     # Rules load straight from dotfiles; drop rule snapshots left by older runs.
     entry = config / "CLAUDE.md"

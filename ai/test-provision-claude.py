@@ -76,6 +76,9 @@ class ProvisionTest(unittest.TestCase):
             module.provision(personal, "work", "opus", refresh=True)
             self.assertEqual((personal / "skills/test/SKILL.md").read_text(), "Updated shared source")
             (own / "SKILL.md").write_text("Live edit")
+            (personal / "skills/renamed").symlink_to(source / "skills/mine/work/renamed")
+            module.provision(personal, "work", "opus")
+            self.assertFalse((personal / "skills/renamed").is_symlink())
             for config in accounts:
                 self.assertEqual((config / "skills/own/SKILL.md").read_text(), "Live edit")
             self.assertIn("Keep my account rule", (personal / "CLAUDE.md").read_text())

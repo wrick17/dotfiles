@@ -134,7 +134,7 @@ ai/
     post-merge
 ```
 
-`ai/common/global.md` and `ai/common/orchestration.md` hold the always-loaded shared rules, kept short. Situational rules live in skills under `ai/skills/mine` (for example `delegation`, `browser-work`, `visual-reports`, and the work skills `sequoia-pr` and `github-accounts`); the core files list a trigger line for each. The common `agents.md` and `claude.md` add runtime rules. Work profiles import those rules and `ai/work/instructions.md`; personal profiles import only their common runtime rules. OpenCode's work profile imports the global and work rules directly.
+`ai/common/global.md` and `ai/common/orchestration.md` hold the always-loaded shared rules, kept short. Situational rules live in skills under `ai/skills/mine` (for example `agent-memory`, `delegation`, `browser-work`, `visual-reports`, and the work skills `sequoia-pr` and `github-accounts`); the core files list a trigger line for each. The common `agents.md` and `claude.md` add runtime rules. Work profiles import those rules and `ai/work/instructions.md`; personal profiles import only their common runtime rules. OpenCode's work profile imports the global and work rules directly.
 
 Choose the profile for each machine. Personal machines use `ai/personal/agents.md` for Codex and `ai/personal/claude.md` for Claude Code. Work machines use `ai/work/agents.md` and `ai/work/claude.md`, for every Claude account on that machine; the OpenCode work profile is `ai/work/opencode.md`.
 
@@ -158,7 +158,7 @@ ln -s "$HOME/dotfiles/ai/skills" "$HOME/skills"
 
 If `~/skills` already exists as a directory, preserve its contents and update its `mine`, `third-party`, `update`, and `sync-ponytail` links to the matching entries under `ai/skills`. The work machine keeps that directory and its legacy skill aliases.
 
-Codex discovers user skills through individual links in `~/.agents/skills`, each pointing at `../../skills/<owner>/<profile>/<skill>`; add a link for every skill in `mine/common` and the profile's `mine` folder. Claude Code discovers skills in each account's own `skills` directory. The provisioning helper links every skill in `mine/common` and `mine/<profile>` into each account on every run, backing up any copy it replaces. It materializes third-party skills, preserving existing regular directories and unrelated entries. Fresh accounts receive common and selected-profile third-party skills. Existing accounts keep their current third-party skill set. Plugin-managed skills stay managed by their plugins.
+Codex discovers user skills through individual links in `~/.agents/skills`, each pointing at `../../skills/<owner>/<profile>/<skill>`; add a link for every skill in `mine/common` and the profile's `mine` folder. Claude Code discovers skills in each account's own `skills` directory. The provisioning helper links every skill in `mine/common` and `mine/<profile>` into each account on every run, backing up any copy it replaces, and removes links to own skills that no longer exist. It materializes third-party skills, preserving existing regular directories and unrelated entries. Fresh accounts receive common and selected-profile third-party skills. Existing accounts keep their current third-party skill set. Plugin-managed skills stay managed by their plugins.
 
 Ponytail is installed as a plugin, not vendored. The `plugins.ponytail` entry in `ai/skills/third-party/sources.json` pins its release tag, and this repo is the only place that version is set. `ai/skills/sync-ponytail` installs that tag:
 
@@ -200,5 +200,17 @@ git clone https://github.com/tt-a1i/archify.git "$HOME/dotfiles/ai/skills/third-
 ```
 
 Claude Code's user-scoped MCP servers live in each explicit config directory's `.claude.json`, or the legacy `~/.claude.json` for implicit launches. These files remain separate from the account's instruction and skill snapshots. This machine configures `homeassistant`, `browser-mcp`, `devtools`, `t3-code`, and `openai-api-key-local-confirmation`. Vercel already connects through Claude's own connector at the same endpoint. The confirmation server uses the installed OpenAI Developers plugin's script, so update its absolute path after a plugin version change. Codex app runtimes, computer use, Codex Security, disabled servers, and ChatGPT-only connector transports are not copied. T3 also injects its own thread-scoped tools when it launches Claude.
+
+Every Claude account and Codex install, work and personal, needs the `agent_memory` server, because the shared rules make Agent Memory the primary memory. The provisioning helper does not manage MCP config, so add it once per Claude account directory and once for Codex, then sign in:
+
+```sh
+export CLAUDE_CONFIG_DIR="$HOME/.plaude"   # repeat for each account directory
+claude mcp add --scope user --transport http agent_memory https://memory.wrick17.com/mcp
+claude mcp login agent_memory   # or /mcp inside that account
+codex mcp add agent_memory --url https://memory.wrick17.com/mcp
+codex mcp login agent_memory
+```
+
+BothQ (`bothq`) stays a read-only legacy archive; no rule writes to it.
 
 Run `claude mcp list` to check connections. Complete each client's OAuth sign-in with `claude mcp login homeassistant` and `claude mcp login t3-code`, or use `/mcp` inside Claude Code. Home Assistant uses a URL client ID with a matching local callback port. Keep account tokens in each client's supported credential storage. Existing claude.ai connectors stay managed by Claude.

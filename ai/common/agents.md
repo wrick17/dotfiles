@@ -10,5 +10,5 @@ Read and follow [global.md](global.md) before starting any task. Resolve instruc
 
 ## Native memory
 
-- Consult supplied native memory for relevant prior work and search `~/.codex/memories/MEMORY.md` when needed. Use the supported memory mechanism and follow its write restrictions.
+- Codex native memory is the backup to Agent Memory. When Agent Memory is unavailable or lacks relevant prior work, consult supplied native memory and search `~/.codex/memories/MEMORY.md`. Follow its write restrictions.
 - Use `codex` as the runtime label in task-journal names.
