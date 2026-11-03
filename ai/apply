@@ -1,0 +1,129 @@
+#!/usr/bin/env python3
+"""Apply this repo's AI setup on this machine: provision every Claude account, link the
+Codex hooks, and sync Ponytail when its pin moved.
+
+First run on a machine saves the account list:
+  ai/apply --account ~/.claude work haiku --account ~/.plaude work opus
+Later runs need no arguments. Passing --account again replaces the saved list.
+The tracked git hooks run `ai/apply --since REV` after pulls that change ai/."""
+
+import argparse
+import importlib.util
+import json
+import os
+from pathlib import Path
+import shlex
+import subprocess
+import sys
+
+
+AI = Path(__file__).resolve().parent
+# Per-machine and uncommitted: account directories and models differ between machines.
+ACCOUNTS = Path(os.environ.get("XDG_CONFIG_HOME") or Path.home() / ".config") / "dotfiles/ai-accounts"
+MANIFEST = "ai/skills/third-party/sources.json"
+FIRST_RUN = "ai/apply --account CONFIG_DIR PROFILE DEFAULT_MODEL [--account ...]"
+
+
+def ponytail_tag(text):
+    try:
+        return json.loads(text).get("plugins", {}).get("ponytail", {}).get("tag", "")
+    except ValueError:
+        return ""
+
+
+def account_error(config, profile, model):
+    if not config.strip() or not model.strip():
+        return "config dir and default model must not be empty"
+    if profile not in ("work", "personal"):
+        return f"profile for {config} must be work or personal, not {profile}"
+    # Provisioning rewrites settings and skill dirs, so never aim it at the home folder or this repo.
+    path = Path(config).expanduser().resolve()
+    if path == Path.home().resolve() or path.is_relative_to(AI.parent.resolve()):
+        return f"{config} must be a Claude config dir, not the home folder or a path inside this repo"
+    return None
+
+
+def read_accounts():
+    accounts = []
+    for number, line in enumerate(ACCOUNTS.read_text().splitlines(), 1):
+        fields = shlex.split(line, comments=True)
+        if not fields:
+            continue
+        if len(fields) != 3:
+            raise ValueError(f"{ACCOUNTS}:{number}: expected CONFIG_DIR work|personal DEFAULT_MODEL")
+        if error := account_error(*fields):
+            raise ValueError(f"{ACCOUNTS}:{number}: {error}")
+        accounts.append(fields)
+    return accounts
+
+
+def link_codex_hooks():
+    home = Path(os.environ.get("CODEX_HOME") or Path.home() / ".codex")
+    if not home.is_dir():
+        return "Codex: not installed, skipped"
+    link, source = home / "hooks.json", AI / "common/codex.hooks.json"
+    if link.is_symlink() and link.resolve() == source.resolve():
+        return "Codex: hooks already linked"
+    if link.exists() or link.is_symlink():
+        return f"Warning: {link} is not a link to {source}; merge that file's entries into it by hand"
+    link.symlink_to(source)
+    return f"Codex: linked {link}; restart Codex and approve the hooks in /hooks"
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("--account", nargs=3, action="append", metavar=("CONFIG_DIR", "PROFILE", "DEFAULT_MODEL"),
+                        help="Claude account to provision; repeat per account. Replaces the saved list.")
+    parser.add_argument("--since", metavar="REV", help="git hook mode: sync Ponytail only if its pin changed since REV")
+    args = parser.parse_args()
+    hook = args.since is not None
+
+    if args.account:
+        for account in args.account:
+            if error := account_error(*account):
+                parser.error(error)
+        ACCOUNTS.parent.mkdir(parents=True, exist_ok=True)
+        ACCOUNTS.write_text("".join(shlex.join([str(Path(c).expanduser().absolute()), p, m]) + "\n" for c, p, m in args.account))
+        print("Saved accounts to " + str(ACCOUNTS))
+    elif not ACCOUNTS.exists():
+        print(f"No saved Claude accounts in {ACCOUNTS}. Run once on this machine:\n  {FIRST_RUN}", file=sys.stderr)
+        return 0 if hook else 2
+
+    spec = importlib.util.spec_from_file_location("provision", AI / "provision-claude.py")
+    provision = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(provision)
+    failed = []
+    try:
+        accounts = read_accounts()
+    except (OSError, ValueError) as error:
+        print("Error: " + str(error), file=sys.stderr)
+        return 1
+    for config, profile, model in accounts:
+        try:
+            provision.provision(Path(config), profile, model)
+        except (OSError, ValueError, subprocess.SubprocessError, json.JSONDecodeError) as error:
+            print(f"Error: provisioning {config} failed: {error}", file=sys.stderr)
+            failed.append(config)
+
+    print(link_codex_hooks())
+
+    synced = True
+    if hook:
+        before = subprocess.run(["git", "-C", str(AI.parent), "show", f"{args.since}:{MANIFEST}"], capture_output=True, text=True).stdout
+        after = (AI.parent / MANIFEST).read_text()
+        if ponytail_tag(before) == ponytail_tag(after):
+            print("Ponytail: pin unchanged")
+        else:
+            print(f"Ponytail: pin changed to {ponytail_tag(after)}; syncing installed plugins...", flush=True)
+            if subprocess.run([str(AI / "skills/sync-ponytail")]).returncode:
+                print("Error: Ponytail sync failed; fix the error above, then run ai/skills/sync-ponytail", file=sys.stderr)
+                synced = False
+    else:
+        print("Ponytail: not checked; after a pull outside git (such as jj) that moves the pin, run ai/skills/sync-ponytail")
+
+    print(f"Applied {len(accounts) - len(failed)} of {len(accounts)} Claude accounts" + ("; failed: " + ", ".join(failed) if failed else ""))
+    return 1 if failed or not synced else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

@@ -48,22 +48,40 @@ brew install rtk-ai/tap/rtk
 rtk config --create
 ```
 
-The common `rtk` skill routes commands through RTK and uses `rtk proxy` when full output is needed. For automatic command rewriting in Codex, link the shared hook configuration if `~/.codex/hooks.json` does not already exist:
+The common `rtk` skill routes commands through RTK and uses `rtk proxy` when full output is needed.
+
+### Apply the AI setup on a machine
+
+`ai/apply` applies the hooks and settings from this repo on one machine. Run it once by hand on each machine, with one `--account` per Claude Code account: the config directory, the profile (`work` or `personal`), and the default model. On this work machine, both accounts use the work rules:
 
 ```sh
-ln -s "$HOME/dotfiles/ai/common/codex.hooks.json" "$HOME/.codex/hooks.json"
+rtk proxy ~/dotfiles/ai/apply --account ~/.claude work haiku --account ~/.plaude work opus
 ```
 
-If that file already exists, merge the `PreToolUse` entry from `ai/common/codex.hooks.json` into it. Restart Codex after installing the hook.
+It saves that list to `~/.config/dotfiles/ai-accounts` (under `$XDG_CONFIG_HOME` when set), one `CONFIG_DIR PROFILE DEFAULT_MODEL` line per account. The file stays on the machine and is not committed. Later runs need no arguments. To change the list, run it again with the full new set of `--account` options; that replaces the saved list.
 
-Claude Code accounts have independent user settings, skills, and hooks. Each account's `CLAUDE.md` imports the shared rules from `ai/<profile>/claude.md` directly, so rule edits in this repo apply to every account. Provision each account once, then edit its local settings and skills. On this work machine, both accounts use the work rules:
+Each run does the following:
 
-```sh
-rtk proxy python3 "$HOME/dotfiles/ai/provision-claude.py" "$HOME/.claude" --profile work --default-model haiku
-rtk proxy python3 "$HOME/dotfiles/ai/provision-claude.py" "$HOME/.plaude" --profile work --default-model opus
-```
+- Runs `ai/provision-claude.py` for every saved account.
+- Links `~/.codex/hooks.json` to `ai/common/codex.hooks.json` when `~/.codex` exists and the file is missing. If a different `hooks.json` is already there, it leaves the file alone and prints a warning; merge the entries from `ai/common/codex.hooks.json` into it by hand.
+- Sets this repo's `core.hooksPath` to `ai/git-hooks` (see below).
+- Prints a short summary, and exits non-zero if any step failed.
 
-The helper points `CLAUDE.md` at the shared rules and removes rule snapshots left by older runs. It materializes skill symlinks, including nested symlinks, rewrites shared skill paths to account-local copies, and fixes the SessionStart hook path. Existing settings and model choices are preserved; `--default-model` only seeds a missing choice. Changed files are backed up under `~/.local/state/claude-account-backups/` with private permissions. It leaves authentication, sessions, plugins, and caches alone. Reruns preserve account edits and do not relink skill snapshots to shared sources. Upstream skill updates require a deliberate edit to each account's local snapshot. Check the helper with `rtk proxy python3 ai/test-provision-claude.py`.
+After that first run, pulls re-apply the setup by themselves. The tracked `post-merge` hook (plain `git pull`, including fast-forward `git pull --rebase`) and `post-rewrite` hook (a `git pull --rebase` that replays local commits) run `ai/apply` when the pull changed anything under `ai/`. They never block or undo a pull: if `ai/apply` fails, the hook prints a warning and the fix command.
+
+Some cases still need a manual `ai/apply`:
+
+- A fresh clone. Git never runs hooks from a fresh clone, so run the first `ai/apply --account ...` yourself. Recreate the source checkouts under `ai/skills/third-party/.sources` first (see below), because the `archify` skill links into one.
+- A pull through `jj`. It does not run git hooks. If that pull moved the Ponytail pin, also run `ai/skills/sync-ponytail`.
+- Any other pull that skips the hooks, such as a `git pull --rebase` whose local commits were all dropped as already upstream. Run `ai/apply`.
+
+Claude Code reloads hooks from `settings.json` while it runs. Codex loads hooks at start, so restart Codex after `hooks.json` changes, and approve new or changed hooks in `/hooks`.
+
+Both runtimes get session hooks that run `ai/common/session-temp.sh` at `SessionStart` and `SessionEnd`. Claude accounts call the script by its absolute path in this repo, so script edits arrive with a pull. The Codex entries use `"$HOME/dotfiles/..."`, which the shell expands, so the repo must live at `~/dotfiles`. Codex caps `SessionEnd` hooks at 3 seconds.
+
+Claude Code accounts have independent user settings, skills, and hooks. Each account's `CLAUDE.md` imports the shared rules from `ai/<profile>/claude.md` directly, so rule edits in this repo apply to every account. After the first apply, edit each account's local settings and skills as needed.
+
+The provisioning helper points `CLAUDE.md` at the shared rules and removes rule snapshots left by older runs. It materializes skill symlinks, including nested symlinks, rewrites shared skill paths to account-local copies, and registers the session hooks: the work rules hook for work profiles, and the session temp hook for every profile. Reruns update those entries in place instead of adding copies. Existing settings and model choices are preserved; `--default-model` only seeds a missing choice. Changed files are backed up under `~/.local/state/claude-account-backups/` with private permissions. It leaves authentication, sessions, plugins, and caches alone. Reruns preserve account edits and do not relink skill snapshots to shared sources. Upstream skill updates require a deliberate edit to each account's local snapshot. Check the helper with `rtk proxy python3 ai/test-provision-claude.py`.
 
 After sourcing `~/.zshrc` in a fresh terminal:
 
@@ -103,6 +121,7 @@ AI instructions and skills live together under `ai/`:
 ai/
   common/
     codex.hooks.json
+    session-temp.sh
     global.md
     orchestration.md
     agents.md
@@ -132,6 +151,9 @@ ai/
     sync-ponytail
   git-hooks/
     post-merge
+    post-rewrite
+  apply
+  provision-claude.py
 ```
 
 `ai/common/global.md` and `ai/common/orchestration.md` hold the always-loaded shared rules, kept short. Situational rules live in skills under `ai/skills/mine` (for example `agent-memory`, `delegation`, `browser-work`, `visual-reports`, and the work skills `sequoia-pr` and `github-accounts`); the core files list a trigger line for each. The common `agents.md` and `claude.md` add runtime rules. Work profiles import those rules and `ai/work/instructions.md`; personal profiles import only their common runtime rules. OpenCode's work profile imports the global and work rules directly.
@@ -146,7 +168,7 @@ For a personal machine, create `~/.codex/AGENTS.md` with:
 Read and follow [agents.md](/Users/wrick/dotfiles/ai/personal/agents.md) before starting any task. Resolve instruction links relative to each containing file, follow them recursively, and apply all imported rules. Stop and report a required file that cannot be read.
 ```
 
-For Claude Code on a personal machine, run the helper with `--profile personal` and the desired default model. Keep each account's `CLAUDE.md` and imported files local to that account. Merge additional rules into those local files.
+For Claude Code on a personal machine, run `ai/apply` with `personal` as each account's profile, for example `ai/apply --account ~/.claude personal opus`. Keep each account's `CLAUDE.md` and imported files local to that account. Merge additional rules into those local files.
 
 Skills are grouped by owner, then profile: `ai/skills/mine/<profile>` holds the user's own skills and `ai/skills/third-party/<profile>` holds the rest. Every machine uses `common`; work machines add `work` and personal machines add `personal`. `sequoia-frontend` and the other work skills belong to work machines. Claude accounts link the user's own skills live, so edits apply at once, and keep an independent materialized copy of third-party skills. Plugin-managed skills keep their existing installations.
 
@@ -170,7 +192,7 @@ Ponytail is installed as a plugin, not vendored. The `plugins.ponytail` entry in
 rtk proxy ~/skills/sync-ponytail
 ```
 
-The provisioning helper sets this repo's `core.hooksPath` to `ai/git-hooks`. It leaves an existing different value alone and prints a warning. The tracked `post-merge` hook runs `sync-ponytail` after a `git pull` that moves the pin. If the sync fails, the hook warns and keeps the pull; fix the error and rerun the script. Pulls through `jj` or `git pull --rebase` do not run `post-merge`, so run the script yourself after them. The plugin supplies six namespaced skills, such as `/ponytail:ponytail`, plus `SessionStart`, `UserPromptSubmit`, and `SubagentStart` hooks. Those hooks run `node`, which must be on the `PATH` of the shell or app that launches the agent. Restart running agents after a sync.
+The provisioning helper sets this repo's `core.hooksPath` to `ai/git-hooks`. It leaves an existing different value alone and prints a warning. It also leaves `core.hooksPath` unset, with a warning, when the default hooks directory already has active hooks, because setting it would disable them. When a pull moves the pin, the git hooks' `ai/apply` run also runs `sync-ponytail`. A plain `ai/apply` run by hand does not check the pin. If the sync fails, the hook warns and keeps the pull; fix the error and rerun the script. The plugin supplies six namespaced skills, such as `/ponytail:ponytail`, plus `SessionStart`, `UserPromptSubmit`, and `SubagentStart` hooks. Those hooks run `node`, which must be on the `PATH` of the shell or app that launches the agent. Restart running agents after a sync.
 
 Third-party skills from pstack and mattpocock are vendored into `ai/skills/third-party/common` as tracked, agent-agnostic copies: no product, host, or model names in their instructions. `ai/skills/third-party/sources.json` records each skill's upstream repository, path, and the upstream commit its copy is based on. Archify stays a link into its checkout because its only host names are brand-logo data. The rstack family, `mf`, and `pdf` have no recorded upstream and are maintained by hand.
 

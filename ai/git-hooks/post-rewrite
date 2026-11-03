@@ -1,0 +1,4 @@
+#!/bin/sh
+# A git pull --rebase that replays local commits ends here instead of post-merge. Amends are skipped.
+[ "$1" = rebase ] || exit 0
+exec "$(dirname "$0")/post-merge" rebase < /dev/null

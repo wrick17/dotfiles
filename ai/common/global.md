@@ -86,6 +86,7 @@ Load the matching skill before the work it covers. These skills hold the full ru
 ## Workspace
 
 - Read all applicable repository and module instructions, including the nearest `AGENTS.md` or `CLAUDE.md`, before editing. Follow the current runtime's instruction precedence.
+- Put temporary files only in the session's temp folder: Claude Code's scratchpad, or the Codex folder named by the SessionStart hook. Never use fixed paths such as `/tmp/<name>`; scripts create their temp dirs with `mktemp -d` inside that folder.
 
 ## Memory and continuity
 

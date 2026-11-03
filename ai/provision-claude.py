@@ -162,22 +162,28 @@ def provision(config, profile, default_model, refresh=False):
     pre = hooks.setdefault("PreToolUse", [])
     if not any(h.get("command") == "rtk hook claude" for group in pre for h in group.get("hooks", [])):
         pre.append({"matcher": "Bash", "hooks": [{"type": "command", "command": "rtk hook claude"}]})
+
+    def register(event, marker, command, timeout, **extra):
+        # Update an entry that mentions the script in place, so reruns never duplicate it.
+        groups = hooks.setdefault(event, [])
+        found = [item for group in groups for item in group.get("hooks", []) if marker in item.get("command", "")]
+        for item in found:
+            item.update(command=command, **extra)
+        if not found:
+            groups.append({"hooks": [{"type": "command", "command": command, "timeout": timeout, **extra}]})
+
     if profile == "work":
         hook = config / "hooks/claude-session-rules.sh"
         snapshot(AI / "work/claude-session-rules.sh", hook)
-        command = "CLAUDE_CONFIG_DIR=" + shlex.quote(str(config)) + " bash " + shlex.quote(str(hook))
-        session = hooks.setdefault("SessionStart", [])
-        found = False
-        for group in session:
-            for item in group.get("hooks", []):
-                if "claude-session-rules.sh" in item.get("command", ""):
-                    item["command"] = command
-                    found = True
-        if not found:
-            session.append({"hooks": [{"type": "command", "command": command, "timeout": 10}]})
+        register("SessionStart", "claude-session-rules.sh", "CLAUDE_CONFIG_DIR=" + shlex.quote(str(config)) + " bash " + shlex.quote(str(hook)), 10)
+    # Runs the repo script, not a snapshot, so script edits arrive with a pull.
+    temp = "bash " + shlex.quote(str(AI / "common/session-temp.sh")) + " claude"
+    # Async: the start hook prints nothing and its process launch is slow during Claude startup, so it must not delay the session.
+    register("SessionStart", "session-temp.sh", temp, 30, **{"async": True})
+    register("SessionEnd", "session-temp.sh", temp, 30)
     write(settings_path, json.dumps(settings, indent=2) + "\n")
 
-    # Pulls that move the Ponytail pin re-sync the plugin through the tracked post-merge hook.
+    # The tracked post-merge and post-rewrite hooks re-run ai/apply after pulls that change ai/.
     if (AI.parent / ".git").exists():
         git = ["git", "-C", str(AI.parent)]
         hooks_path = subprocess.run(git + ["config", "--get", "core.hooksPath"], capture_output=True, text=True).stdout.strip()
@@ -187,11 +193,11 @@ def provision(config, profile, default_model, refresh=False):
             active = sorted(h.name for h in default.glob("*") if h.is_file() and os.access(h, os.X_OK) and h.suffix != ".sample")
             if active:
                 print("Warning: " + str(default) + " has active hooks (" + ", ".join(active) + "), so core.hooksPath is not set and"
-                      " the Ponytail post-merge hook is not active. Move them to ai/git-hooks, then run: git config core.hooksPath ai/git-hooks")
+                      " the ai/git-hooks pull hooks are not active. Move them to ai/git-hooks, then run: git config core.hooksPath ai/git-hooks")
             else:
                 subprocess.run(git + ["config", "core.hooksPath", "ai/git-hooks"], check=True)
         elif hooks_path != "ai/git-hooks":
-            print("Warning: core.hooksPath is " + hooks_path + "; the Ponytail post-merge hook is not active")
+            print("Warning: core.hooksPath is " + hooks_path + "; the ai/git-hooks pull hooks are not active")
     print("Provisioned " + str(config))
     if backup.exists():
         print("Backup: " + str(backup))

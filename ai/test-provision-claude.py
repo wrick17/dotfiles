@@ -1,9 +1,14 @@
 #!/usr/bin/env python3
 """Check account independence and preservation using a disposable fixture."""
 
+import contextlib
+import importlib.machinery
 import importlib.util
+import io
 import json
+import os
 from pathlib import Path
+import shutil
 import subprocess
 import tempfile
 import unittest
@@ -13,6 +18,9 @@ from unittest.mock import patch
 spec = importlib.util.spec_from_file_location("provision", Path(__file__).with_name("provision-claude.py"))
 module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(module)
+loader = importlib.machinery.SourceFileLoader("apply", str(Path(__file__).with_name("apply")))
+apply = importlib.util.module_from_spec(importlib.util.spec_from_loader("apply", loader))
+loader.exec_module(apply)
 
 
 class ProvisionTest(unittest.TestCase):
@@ -98,6 +106,57 @@ class ProvisionTest(unittest.TestCase):
             active.unlink()
             module.provision(personal, "work", "opus")
             self.assertEqual(subprocess.run(git_config, capture_output=True, text=True).stdout.strip(), "ai/git-hooks")
+
+    def test_apply_saves_accounts_and_registers_session_temp_once(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder).resolve()  # provision-claude.py resolves its path; macOS temp dirs sit behind /var -> /private/var
+            ai = root / "repo/ai"
+            for scope in ("common", "work", "personal"):
+                (ai / "skills/third-party" / scope).mkdir(parents=True)
+                (ai / "skills/mine" / scope).mkdir(parents=True)
+                (ai / scope).mkdir()
+            (ai / "work/claude-session-rules.sh").write_text("#!/bin/bash\nexit 0\n")
+            # A copy, not a link: provision-claude.py resolves its own path to find the fixture ai/ (no .git, so git config is untouched).
+            shutil.copy(Path(__file__).with_name("provision-claude.py"), ai)
+            work, personal = root / "work", root / "personal"
+            env = {"HOME": str(root / "home"), "CODEX_HOME": str(root / "no-codex")}
+
+            def run(*argv):
+                with patch.object(apply, "AI", ai), patch.object(apply, "ACCOUNTS", root / "config/ai-accounts"), \
+                        patch("sys.argv", ["apply", *argv]), patch.dict(os.environ, env), contextlib.redirect_stdout(io.StringIO()), \
+                        contextlib.redirect_stderr(io.StringIO()):
+                    return apply.main()
+
+            self.assertEqual(run(), 2)
+            self.assertEqual(run("--since", "HEAD"), 0)  # git hook mode only warns
+            self.assertEqual(run("--account", str(work), "work", "haiku", "--account", str(personal), "personal", "opus"), 0)
+            self.assertEqual(len((root / "config/ai-accounts").read_text().splitlines()), 2)
+            self.assertEqual(run(), 0)
+            self.assertEqual(run(), 0)
+            command = "bash " + str(ai / "common/session-temp.sh") + " claude"
+            expected = {"SessionStart": {"type": "command", "command": command, "timeout": 30, "async": True},
+                        "SessionEnd": {"type": "command", "command": command, "timeout": 30}}
+            # An entry from before the flag existed gains it on the next run.
+            settings = json.loads((personal / "settings.json").read_text())
+            settings["hooks"]["SessionStart"][0]["hooks"][0].pop("async")
+            (personal / "settings.json").write_text(json.dumps(settings))
+            self.assertEqual(run(), 0)
+            for config in (work, personal):
+                hooks = json.loads((config / "settings.json").read_text())["hooks"]
+                for event in ("SessionStart", "SessionEnd"):
+                    entries = [h for g in hooks[event] for h in g["hooks"] if "session-temp.sh" in h["command"]]
+                    self.assertEqual(entries, [expected[event]])
+            rules = [h for g in json.loads((work / "settings.json").read_text())["hooks"]["SessionStart"] for h in g["hooks"]
+                     if "claude-session-rules.sh" in h["command"]]
+            self.assertEqual(len(rules), 1)
+            # An empty path means the cwd, which under a git hook is this repo, so it is refused when saved and when read.
+            with self.assertRaises(SystemExit):
+                run("--account", "", "work", "opus")
+            (root / "config/ai-accounts").write_text("'' work opus\n")
+            self.assertEqual(run(), 1)
+            self.assertFalse((ai.parent / "settings.json").exists())
+            self.assertEqual(run("--account", str(personal), "personal", "opus"), 0)
+            self.assertEqual((root / "config/ai-accounts").read_text().split(), [str(personal), "personal", "opus"])
 
 
 if __name__ == "__main__":
