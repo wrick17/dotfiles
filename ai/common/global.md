@@ -64,6 +64,7 @@ Load the matching skill before the work it covers. These skills hold the full ru
 - `agent-memory`: at the start of any non-trivial task, on resume, and before any memory write or recall.
 - `task-journal`: at the start of any non-trivial task, on resume, and before delegation, handoff, compaction, or the final response.
 - `browser-work`: before opening, navigating, or inspecting any web page.
+- `writing`: mandatory for every agent and sub-agent before writing, editing, or proposing anything posted or sent for the user, such as tickets, PRs, comments, chat messages, emails, docs, and status updates. Sonnet or Opus writes that text; a GPT model writes it only when both are unavailable.
 - `visual-reports`: before summarizing multi-part work, presenting plans, architecture, or multi-part findings, or creating an HTML report or Postplan.
 - `rtk`: when a command needs `rtk proxy` passthrough or the RTK hook is missing.
 
