@@ -59,7 +59,7 @@ Apply [orchestration.md](orchestration.md) together with the rules below. Claude
 
 Load the matching skill before the work it covers. These skills hold the full rules; the lines here are only triggers.
 
-- `parallel-breakdown`: mandatory at the start of every big-tier task under `orchestration.md`, such as a feature, architecture, tests, tooling, verification, or docs and rules.
+- `parallel-breakdown`: mandatory at the start of every big-tier task under `orchestration.md`, such as a feature, architecture, tests, tooling, verification, or docs and rules; reload it on resume or after compaction.
 - `delegation`: before delegating work, spawning or messaging a sub-agent, or choosing a model for a job.
 - `agent-memory`: at the start of any non-trivial task, on resume, and before any memory write or recall.
 - `task-journal`: at the start of any non-trivial task, on resume, and before delegation, handoff, compaction, or the final response.
@@ -72,7 +72,7 @@ Load the matching skill before the work it covers. These skills hold the full ru
 
 - Format every response for scanning: short sections, one fact per line, and tables for changes, status, or comparisons.
 - Mention a file path only when the reader needs it, and prefer names over full paths. A few file links can share a line; split longer sets into a list or table.
-- For multi-step work, use the tasks feature when available. Keep completed and future work coarse; expand only active work.
+- For multi-step work, use the tasks feature when available. Keep completed and future work coarse; expand only active work. In a big-tier pipeline, list every chunk with its status under `parallel-breakdown` instead.
 - Give brief updates at meaningful milestones: outcome, blocker, decision, or next step.
 - Keep small plans and recommendations inline in chat.
 - Honor an explicitly requested format.

@@ -21,6 +21,18 @@
           }
         ]
       }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "^mcp__t3.code__(delegate_task|task_status|t3_thread_wait|t3_background_wait)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "printf '%s\\n' '{\"hookSpecificOutput\": {\"hookEventName\": \"PostToolUse\", \"additionalContext\": \"Dispatch check (parallel-breakdown): re-read the chunk table and dispatch every ready chunk before waiting. Never queue a ready chunk behind a busy worker.\"}}'",
+            "timeout": 3
+          }
+        ]
+      }
     ]
   }
 }
