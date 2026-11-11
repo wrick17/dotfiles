@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-"""Apply this repo's AI setup on this machine: provision every Claude account, link the
-Codex hooks, and sync Ponytail when its pin moved.
+"""Apply this repo's AI setup on this machine: install the Agent Memory client and register its hooks,
+provision every Claude account, link the Codex hooks, and sync Ponytail when its pin moved.
 
 First run on a machine saves the account list:
   ai/apply --account ~/.claude work haiku --account ~/.plaude work opus
@@ -8,11 +8,14 @@ Later runs need no arguments. Passing --account again replaces the saved list.
 The tracked git hooks run `ai/apply --since REV` after pulls that change ai/."""
 
 import argparse
+from datetime import datetime, timezone
 import importlib.util
 import json
 import os
 from pathlib import Path
+import re
 import shlex
+import shutil
 import subprocess
 import sys
 
@@ -22,6 +25,13 @@ AI = Path(__file__).resolve().parent
 ACCOUNTS = Path(os.environ.get("XDG_CONFIG_HOME") or Path.home() / ".config") / "dotfiles/ai-accounts"
 MANIFEST = "ai/skills/third-party/sources.json"
 FIRST_RUN = "ai/apply --account CONFIG_DIR PROFILE DEFAULT_MODEL [--account ...]"
+# Agent Memory features this setup turns on. inject.enabled stays as the owner set it.
+AGENT_MEMORY_FLAGS = {"facts": {"inject": True, "synthesis": True}, "loop_guard": {"enabled": True}}
+BEGIN = "# BEGIN agent-memory hooks (managed by dotfiles ai/apply; edits here are replaced)\n"
+END = "# END agent-memory hooks\n"
+# A TOML table header: quoted key parts may hold any character; a trailing comment is allowed.
+HEADER = re.compile(r"""^\s*\[\[?\s*((?:"(?:\\.|[^"\\])*"|'[^']*'|[^\]"'#])+?)\s*\]\]?\s*(?:#.*)?$""")
+COMMAND = re.compile(r'^\s*command\s*=\s*"((?:\\.|[^"\\])*)"', re.M)
 
 
 def ponytail_tag(text):
@@ -70,6 +80,191 @@ def link_codex_hooks():
     return f"Codex: linked {link}; restart Codex and approve the hooks in /hooks"
 
 
+def codex_home():
+    return Path(os.environ.get("CODEX_HOME") or Path.home() / ".codex")
+
+
+def find_node():
+    """An absolute Node >= 24 from PATH or fnm's installed versions, newest fnm version first; None if there is none."""
+    versions = Path(os.environ.get("FNM_DIR") or Path.home() / ".local/share/fnm") / "node-versions"
+    installed = sorted(versions.glob("v*/installation/bin/node"), key=lambda p: [int(n) for n in re.findall(r"\d+", p.parts[-4])], reverse=True)
+    for node in ([Path(shutil.which("node"))] if shutil.which("node") else []) + installed:
+        if "fnm_multishells" in str(node):
+            node = node.resolve()  # fnm deletes the per-shell link when that shell exits
+        try:
+            major = subprocess.run([str(node), "-p", "process.versions.node.split('.')[0]"], capture_output=True, text=True, timeout=10).stdout
+            if int(major) >= 24:
+                return str(node)
+        except (OSError, ValueError, subprocess.SubprocessError):
+            continue
+    return None
+
+
+def write_private(path, text, mode=0o600):
+    temp = path.with_name(path.name + ".apply-tmp")
+    with os.fdopen(os.open(temp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, mode), "w") as stream:
+        stream.write(text)
+    os.chmod(temp, mode)
+    temp.replace(path)
+
+
+def enable_agent_memory(file):
+    """Merge AGENT_MEMORY_FLAGS into config.json, keeping every other key and the file private. True if it changed."""
+    config = json.loads(file.read_text())
+    if not isinstance(config, dict):
+        raise ValueError(f"{file} is not a JSON object")
+    merged = {**config, **{key: {**(config[key] if isinstance(config.get(key), dict) else {}), **flags} for key, flags in AGENT_MEMORY_FLAGS.items()}}
+    if merged == config:
+        file.chmod(0o600)  # it holds the server and token paths; keep it private even when the flags were already set
+        return False
+    write_private(file, json.dumps(merged, indent=2) + "\n")
+    return True
+
+
+def run_install(node, cli):
+    """Run `agent-memory install`; return its Claude hooks, its Codex TOML and the plist it wrote (None off macOS)."""
+    result = subprocess.run([node, str(cli), "install"], capture_output=True, text=True, timeout=120)
+    if result.returncode:
+        raise ValueError("agent-memory install failed: " + (result.stderr.strip() or f"exit {result.returncode}"))
+    head, _, rest = result.stdout.partition("Claude Code hooks to add to settings.json:\n")
+    claude, _, codex = rest.partition("\nCodex hooks to add to config.toml:\n")
+    if not codex.strip():
+        raise ValueError("unexpected agent-memory install output; update ai/apply to match the client")
+    plist = re.search(r"written to (\S+\.plist) \(not loaded\)", head)
+    return json.loads(claude)["hooks"], codex.strip() + "\n", plist and plist.group(1)
+
+
+def codex_agent_memory(command):
+    # The installed `bin/agent-memory` and the older hand-written `bin/agent-memory.mjs` commands.
+    return isinstance(command, str) and re.search(r"/bin/agent-memory(\.mjs)? hook codex$", command) is not None
+
+
+def without_agent_memory(config):
+    """Parsed config.toml minus every agent-memory Codex hook, dropping groups and events left empty: what the edit must produce."""
+    hooks = config.get("hooks")
+    for event, groups in list(hooks.items() if isinstance(hooks, dict) else []):
+        if not isinstance(groups, list):
+            continue
+        kept = []
+        for group in groups:
+            items = group.get("hooks", []) if isinstance(group, dict) else []
+            others = [h for h in items if not (isinstance(h, dict) and codex_agent_memory(h.get("command")))]
+            if len(others) < len(items):
+                if not others:
+                    continue
+                group = {**group, "hooks": others}
+            kept.append(group)
+        if kept != groups:
+            if kept:
+                hooks[event] = kept
+            else:
+                del hooks[event]
+    return config
+
+
+def drop_legacy_codex(text):
+    """Remove hand-written agent-memory [[hooks.EVENT.hooks]] tables, and their [[hooks.EVENT]] parent once it has no other child."""
+    chunks = [[]]
+    for line in text.splitlines(keepends=True):
+        if HEADER.match(line):
+            chunks.append([])
+        chunks[-1].append(line)
+    names = [None] + [HEADER.match(chunk[0]).group(1) for chunk in chunks[1:]]
+    drop = {i for i, name in enumerate(names) if name and name.startswith("hooks.") and name.endswith(".hooks")
+            and any(codex_agent_memory(command) for command in COMMAND.findall("".join(chunks[i])))}
+    for i, name in enumerate(names):
+        children = []
+        while name and i + 1 + len(children) < len(names) and names[i + 1 + len(children)] == name + ".hooks":
+            children.append(i + 1 + len(children))
+        if children and all(j in drop for j in children):
+            drop.add(i)
+            while chunks[i - 1] and chunks[i - 1][-1].lstrip().startswith("#") and "agent memory" in chunks[i - 1][-1].lower():
+                chunks[i - 1].pop()  # the hand-written block's heading comment
+    return "".join(line for i, chunk in enumerate(chunks) if i not in drop for line in chunk)
+
+
+def write_codex_hooks(node, codex):
+    """Keep the agent-memory Codex hooks in a managed block of config.toml, where agent-memory doctor looks for them."""
+    home = codex_home()
+    if not home.is_dir():
+        return "Codex: not installed, Agent Memory hooks skipped"
+    file = home / "config.toml"
+    try:
+        import tomllib  # Python 3.11+; git hooks from GUI apps may run the system Python 3.9
+    except ImportError:
+        return f"Warning: Codex: {file} left unchanged; Agent Memory Codex hooks need Python 3.11 or newer. Rerun ai/apply with a newer python3"
+    text = file.read_text() if file.exists() else ""
+    new = drop_legacy_codex(re.sub(r"\n?" + re.escape(BEGIN) + ".*?" + re.escape(END), "", text, flags=re.S))
+    # The text edit must remove exactly the agent-memory hooks and nothing else; otherwise keep the file as it is.
+    try:
+        expected = without_agent_memory(tomllib.loads(text))
+    except tomllib.TOMLDecodeError as error:
+        return f"Warning: Codex: {file} left unchanged; it is not valid TOML ({error}). Add the Agent Memory hooks by hand"
+    bare = lambda config: {k: v for k, v in config.items() if (k, v) != ("hooks", {})}  # an emptied [hooks] may go with its last hook
+    try:
+        safe = bare(tomllib.loads(new)) == bare(expected)
+    except tomllib.TOMLDecodeError:
+        safe = False
+    if not safe:
+        return f"Warning: Codex: {file} left unchanged; the old Agent Memory hooks could not be removed without touching other settings. Remove them by hand"
+    if new and not new.endswith("\n"):
+        new += "\n"
+    # Absolute Node: Codex may run without fnm on PATH. Doctor matches "<bin> hook codex", so bin stays unquoted.
+    new += "\n" + BEGIN + codex.replace('command = "', 'command = "' + json.dumps(shlex.quote(node))[1:-1] + " ") + END
+    if new == text:
+        return "Codex: Agent Memory hooks unchanged"
+    try:
+        tomllib.loads(new)
+    except tomllib.TOMLDecodeError as error:
+        return f"Warning: Codex: {file} left unchanged; adding the Agent Memory hooks would make it invalid TOML ({error})"
+    if file.exists():
+        backup = Path.home() / ".local/state/claude-account-backups" / (datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ") + "-codex")
+        backup.mkdir(parents=True, mode=0o700)
+        shutil.copy2(file, backup / file.name)
+        os.chmod(backup / file.name, 0o600)
+    write_private(file, new, file.stat().st_mode & 0o777 if file.exists() else 0o600)
+    return f"Codex: wrote Agent Memory hooks to {file}; restart Codex and approve the changed hooks in /hooks"
+
+
+def load_launchd(plist):
+    if sys.platform != "darwin":
+        return "Agent Memory: daily batch job not loaded; launchd is macOS only"
+    if not plist:
+        return "Warning: Agent Memory install wrote no launchd plist; daily batch job not loaded"
+    domain, label = f"gui/{os.getuid()}", Path(plist).stem
+    if not subprocess.run(["launchctl", "print", f"{domain}/{label}"], capture_output=True).returncode:
+        return f"Agent Memory: daily batch job {label} already loaded"
+    result = subprocess.run(["launchctl", "bootstrap", domain, plist], capture_output=True, text=True)
+    if result.returncode:
+        return f"Warning: Agent Memory: launchctl bootstrap {domain} {plist} failed: {result.stderr.strip()}"
+    return f"Agent Memory: loaded daily batch job {label}"
+
+
+def setup_agent_memory():
+    """Install the Agent Memory client from its checkout and register its Codex hooks.
+    Returns (node, Claude hooks) for provisioning, or None when skipped. Raises on a failed install."""
+    source = Path(os.environ.get("AGENT_MEMORY_SOURCE") or Path.home() / "Projects/personal/memory").expanduser()
+    cli = source / "local/agent-memory.mjs"
+    if not cli.is_file():
+        print(f"Warning: Agent Memory: no checkout at {source} (set AGENT_MEMORY_SOURCE to its path); skipped")
+        return None
+    node = find_node()
+    if not node:
+        print("Warning: Agent Memory: no Node 24 or newer on PATH or in fnm; skipped")
+        return None
+    config = Path(os.environ.get("AGENT_MEMORY_HOME") or Path.home() / ".agent-memory") / "config.json"
+    if not config.exists():
+        run_install(node, cli)  # creates the private config the flags merge into
+    if enable_agent_memory(config):
+        print(f"Agent Memory: enabled facts.inject, facts.synthesis and loop_guard in {config}")
+    # A second install after the merge, so its hook set and timeouts reflect the flags.
+    claude, codex, plist = run_install(node, cli)
+    print(f"Agent Memory: installed client from {source} with {node}")
+    print(write_codex_hooks(node, codex))
+    print(load_launchd(plist))
+    return node, claude
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--account", nargs=3, action="append", metavar=("CONFIG_DIR", "PROFILE", "DEFAULT_MODEL"),
@@ -98,9 +293,14 @@ def main():
     except (OSError, ValueError) as error:
         print("Error: " + str(error), file=sys.stderr)
         return 1
+    try:
+        agent_memory = setup_agent_memory()
+    except (OSError, ValueError, subprocess.SubprocessError) as error:
+        print("Error: Agent Memory setup failed; Claude hooks left as they were: " + str(error), file=sys.stderr)
+        agent_memory = False
     for config, profile, model in accounts:
         try:
-            provision.provision(Path(config), profile, model)
+            provision.provision(Path(config), profile, model, agent_memory=agent_memory)
         except (OSError, ValueError, subprocess.SubprocessError, json.JSONDecodeError) as error:
             print(f"Error: provisioning {config} failed: {error}", file=sys.stderr)
             failed.append(config)
@@ -122,7 +322,7 @@ def main():
         print("Ponytail: not checked; after a pull outside git (such as jj) that moves the pin, run ai/skills/sync-ponytail")
 
     print(f"Applied {len(accounts) - len(failed)} of {len(accounts)} Claude accounts" + ("; failed: " + ", ".join(failed) if failed else ""))
-    return 1 if failed or not synced else 0
+    return 1 if failed or not synced or agent_memory is False else 0
 
 
 if __name__ == "__main__":

@@ -62,6 +62,7 @@ It saves that list to `~/.config/dotfiles/ai-accounts` (under `$XDG_CONFIG_HOME`
 
 Each run does the following:
 
+- Installs or updates the Agent Memory client (see below).
 - Runs `ai/provision-claude.py` for every saved account.
 - Links `~/.codex/hooks.json` to `ai/common/codex.hooks.json` when `~/.codex` exists and the file is missing. If a different `hooks.json` is already there, it leaves the file alone and prints a warning; merge the entries from `ai/common/codex.hooks.json` into it by hand.
 - Sets this repo's `core.hooksPath` to `ai/git-hooks` (see below).
@@ -74,6 +75,25 @@ Some cases still need a manual `ai/apply`:
 - A fresh clone. Git never runs hooks from a fresh clone, so run the first `ai/apply --account ...` yourself. Recreate the source checkouts under `ai/skills/third-party/.sources` first (see below), because the `archify` skill links into one.
 - A pull through `jj`. It does not run git hooks. If that pull moved the Ponytail pin, also run `ai/skills/sync-ponytail`.
 - Any other pull that skips the hooks, such as a `git pull --rebase` whose local commits were all dropped as already upstream. Run `ai/apply`.
+
+#### Agent Memory
+
+Each run installs the Agent Memory client from its checkout, `~/Projects/personal/memory` by default. To use another path on a machine, set `AGENT_MEMORY_SOURCE` in the shell that runs `ai/apply`. When the checkout is missing, or there is no Node 24 or newer on `PATH` or in fnm, the run prints a warning and skips this step. The rest of the setup still applies.
+
+The step does the following:
+
+- Turns on `facts.inject`, `facts.synthesis` and `loop_guard.enabled` in `~/.agent-memory/config.json`. It keeps every other key and the file's `0600` mode. It does not change `inject.enabled`.
+- Runs the checkout's `local/agent-memory.mjs install` with an absolute Node path.
+- Registers the hooks that `install` prints in every saved Claude account, and for Codex in a managed block in `~/.codex/config.toml`. Each command starts with the absolute Node path, so hooks also run from apps such as T3 Code that have no fnm on `PATH`. Reruns replace older agent-memory entries, including hand-written ones, and leave other hooks alone. Codex also loads `hooks.json`, so it prints a startup warning about hooks defined in two places. After the block changes, restart Codex and approve the changed hooks in `/hooks`.
+- On macOS, loads the daily batch job with `launchctl bootstrap` unless it is already loaded. To load a changed plist, run `launchctl bootout gui/$(id -u)/com.agent-memory.batch`, then run `ai/apply` again.
+
+Do these steps once on each machine. They need tokens, which never go in this repo:
+
+1. Save the job token to the `token_file` named in `~/.agent-memory/config.json`.
+2. Create a read-scoped token on the memory dashboard. Save it to `~/.agent-memory/read-token`, then run `chmod 600 ~/.agent-memory/read-token`.
+3. Run `~/.agent-memory/bin/agent-memory doctor`.
+
+Privacy: with `facts.synthesis` on, the client sends redacted command digests to the Codex CLI on your Codex subscription to propose repo facts, at most 3 calls per UTC day on each machine. Your Codex provider receives those digests.
 
 Claude Code reloads hooks from `settings.json` while it runs. Codex loads hooks at start, so restart Codex after `hooks.json` changes, and approve new or changed hooks in `/hooks`.
 

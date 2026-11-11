@@ -10,6 +10,7 @@ import os
 from pathlib import Path
 import shutil
 import subprocess
+import sys
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -119,7 +120,7 @@ class ProvisionTest(unittest.TestCase):
             # A copy, not a link: provision-claude.py resolves its own path to find the fixture ai/ (no .git, so git config is untouched).
             shutil.copy(Path(__file__).with_name("provision-claude.py"), ai)
             work, personal = root / "work", root / "personal"
-            env = {"HOME": str(root / "home"), "CODEX_HOME": str(root / "no-codex")}
+            env = {"HOME": str(root / "home"), "CODEX_HOME": str(root / "no-codex"), "AGENT_MEMORY_SOURCE": str(root / "no-memory")}
 
             def run(*argv):
                 with patch.object(apply, "AI", ai), patch.object(apply, "ACCOUNTS", root / "config/ai-accounts"), \
@@ -157,6 +158,129 @@ class ProvisionTest(unittest.TestCase):
             self.assertFalse((ai.parent / "settings.json").exists())
             self.assertEqual(run("--account", str(personal), "personal", "opus"), 0)
             self.assertEqual((root / "config/ai-accounts").read_text().split(), [str(personal), "personal", "opus"])
+
+
+    def test_agent_memory_hooks_replace_legacy_and_keep_foreign(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder).resolve()
+            ai = root / "ai"
+            for scope in ("common", "personal"):
+                (ai / "skills/third-party" / scope).mkdir(parents=True)
+                (ai / "skills/mine" / scope).mkdir(parents=True)
+            config, codex = root / "account", root / "codex"
+            config.mkdir()
+            codex.mkdir()
+            bin = str(root / "home/.agent-memory/bin/agent-memory")
+            legacy = "/usr/bin/env CLAUDE_CONFIG_DIR=" + str(config) + " /old/node " + bin + ".mjs hook claude-code"
+            foreign = {"type": "command", "command": "ponytail hook", "timeout": 7}
+            (config / "settings.json").write_text(json.dumps({"hooks": {
+                "SessionStart": [{"hooks": [foreign]}, {"hooks": [{"type": "command", "command": legacy, "timeout": 10}]}],
+                "Stop": [{"hooks": [{"type": "command", "command": legacy, "async": True}]}],
+                "PostToolUse": [{"matcher": "^mcp__t3", "hooks": [foreign, {"type": "command", "command": legacy}]}]}}))
+            installed = {"Stop": [{"hooks": [{"type": "command", "command": bin + " hook claude-code", "async": True}]}],
+                         "SessionStart": [{"hooks": [{"type": "command", "command": bin + " hook claude-code", "timeout": 3}]}],
+                         "PostToolUseFailure": [{"hooks": [{"type": "command", "command": bin + " hook claude-code", "timeout": 5}]}]}
+            with patch.object(module, "AI", ai), patch.dict(os.environ, {"HOME": str(root / "home"), "CODEX_HOME": str(codex)}), \
+                    contextlib.redirect_stdout(io.StringIO()):
+                for _ in range(2):
+                    module.provision(config, "personal", "opus", agent_memory=("/abs/node", installed))
+                first = (config / "settings.json").read_text()
+                module.provision(config, "personal", "opus", agent_memory=("/abs/node", installed))
+                self.assertEqual((config / "settings.json").read_text(), first)
+                module.provision(config, "personal", "opus")  # skipped step: agent-memory entries stay
+                self.assertEqual((config / "settings.json").read_text(), first)
+
+                hooks = json.loads(first)["hooks"]
+                prefix = "/usr/bin/env CLAUDE_CONFIG_DIR=" + str(config) + " /abs/node "
+                mine = {e: [h for g in gs for h in g["hooks"] if "agent-memory" in h["command"]] for e, gs in hooks.items()}
+                self.assertEqual({e: hs for e, hs in mine.items() if hs},
+                                 {e: [{**g[0]["hooks"][0], "command": prefix + bin + " hook claude-code"}] for e, g in installed.items()})
+                self.assertEqual(hooks["SessionStart"][0], {"hooks": [foreign]})
+                self.assertEqual(hooks["PostToolUse"], [{"matcher": "^mcp__t3", "hooks": [foreign]}])
+
+                (root / "agent.json").write_text(json.dumps({"server": "s", "token_file": "t", "facts": {"timeout_ms": 2000}, "inject": {"enabled": False}}))
+                (root / "agent.json").chmod(0o600)
+                self.assertTrue(apply.enable_agent_memory(root / "agent.json"))
+                self.assertFalse(apply.enable_agent_memory(root / "agent.json"))
+                self.assertEqual(json.loads((root / "agent.json").read_text()), {"server": "s", "token_file": "t", "inject": {"enabled": False},
+                                 "facts": {"timeout_ms": 2000, "inject": True, "synthesis": True}, "loop_guard": {"enabled": True}})
+                self.assertEqual((root / "agent.json").stat().st_mode & 0o777, 0o600)
+                (root / "agent.json").chmod(0o644)  # flags already on: the mode is still made private
+                self.assertFalse(apply.enable_agent_memory(root / "agent.json"))
+                self.assertEqual((root / "agent.json").stat().st_mode & 0o777, 0o600)
+
+                # Codex: the hand-written tables go, the managed block is written once, everything else stays byte for byte.
+                kept = 'model = "x"\n\n[hooks]\n[hooks.state."a:session_start:0:0"]\ntrusted_hash = "h"\n\n[[hooks.Stop]]\n[[hooks.Stop.hooks]]\ntype = "command"\ncommand = "rtk hook codex-other"\n\n[agents]\nmax = 10\n\n'
+                old = ('# Agent Memory capture hooks (owner go-live).\n[[hooks.SessionEnd]]\n[[hooks.SessionEnd.hooks]]\ntype = "command"\n'
+                       'command = "/usr/bin/env CLAUDE_CONFIG_DIR=/p /old/node ' + bin + '.mjs hook codex"\ntimeout = 3\n')
+                (codex / "config.toml").write_text(kept + old)
+                toml = '[[hooks.SessionEnd]]\n[[hooks.SessionEnd.hooks]]\ntype = "command"\ncommand = "' + bin + ' hook codex"\ntimeout = 3\n'
+                if sys.version_info < (3, 11):  # no tomllib: the Codex step only warns and leaves the file alone
+                    self.assertTrue(apply.write_codex_hooks("/abs/node", toml).startswith("Warning:"))
+                    self.assertEqual((codex / "config.toml").read_text(), kept + old)
+                    self.skipTest("the Codex TOML cases need Python 3.11 or newer")
+                apply.write_codex_hooks("/abs/node", toml)
+                text = (codex / "config.toml").read_text()
+                self.assertEqual(apply.write_codex_hooks("/abs/node", toml), "Codex: Agent Memory hooks unchanged")
+                self.assertEqual(text, kept + "\n" + apply.BEGIN + toml.replace('command = "', 'command = "/abs/node ') + apply.END)
+                block = "\n" + apply.BEGIN + toml.replace('command = "', 'command = "/abs/node ') + apply.END
+                # Headers with trailing comments end the old table: neither [agents] nor the unrelated hook after it is removed.
+                after = ('[agents] # worker limits\nmax = 10\n\n[[hooks.Stop]]\n[[hooks.Stop.hooks]] # unrelated hook\n'
+                         'type = "command"\ncommand = "rtk hook codex-other"\n')
+                for tail in (after, after.replace("[agents] # worker limits\nmax = 10\n\n", "")):
+                    (codex / "config.toml").write_text('model = "x"\n\n' + old + tail)
+                    apply.write_codex_hooks("/abs/node", toml)
+                    self.assertEqual((codex / "config.toml").read_text(), 'model = "x"\n\n' + tail + block)
+                # An edit that would change anything but agent-memory hooks, or a file that is not TOML, keeps the file as it was.
+                # A file whose only hooks were agent-memory ones loses its emptied [hooks] table.
+                (codex / "config.toml").write_text(old)
+                apply.write_codex_hooks("/abs/node", toml)
+                self.assertEqual((codex / "config.toml").read_text(), block)
+                # A nested-array line looks like a header to the text edit, so the edit is refused instead of breaking the file.
+                for broken in ('[[hooks.Stop]]\n[[hooks.Stop.hooks]]\ncommand = "' + bin + ' hook codex"\nargs = [\n["a"]\n]\n',
+                               old + "[broken\n"):
+                    (codex / "config.toml").write_text(broken)
+                    self.assertTrue(apply.write_codex_hooks("/abs/node", toml).startswith("Warning:"))
+                    self.assertEqual((codex / "config.toml").read_text(), broken)
+
+    @unittest.skipUnless((Path.home() / "Projects/personal/memory/local/agent-memory.mjs").is_file() and apply.find_node(), "needs the memory checkout and Node 24")
+    def test_apply_installs_agent_memory_from_checkout(self):
+        """Runs the real client's install into a disposable home, so the parsed output contract is checked against the client."""
+        source = Path.home() / "Projects/personal/memory"
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder).resolve()
+            ai = root / "repo/ai"
+            for scope in ("common", "personal"):
+                (ai / "skills/third-party" / scope).mkdir(parents=True)
+                (ai / "skills/mine" / scope).mkdir(parents=True)
+            shutil.copy(Path(__file__).with_name("provision-claude.py"), ai)
+            home, account = root / "home", root / "account"
+            (home / ".codex").mkdir(parents=True)
+            env = {"HOME": str(home), "CODEX_HOME": str(home / ".codex"), "AGENT_MEMORY_SOURCE": str(source)}
+            with patch.object(apply, "AI", ai), patch.object(apply, "ACCOUNTS", root / "config/ai-accounts"), \
+                    patch.object(apply, "load_launchd", lambda plist: "launchd skipped in test"), patch.dict(os.environ, env), \
+                    patch("sys.argv", ["apply", "--account", str(account), "personal", "opus"]), contextlib.redirect_stdout(io.StringIO()), \
+                    contextlib.redirect_stderr(io.StringIO()):
+                os.environ.pop("AGENT_MEMORY_HOME", None)
+                self.assertEqual(apply.main(), 0)
+                codex_file = home / ".codex/config.toml"
+                settings, codex = (account / "settings.json").read_text(), codex_file.exists() and codex_file.read_text()
+                self.assertEqual(apply.main(), 0)
+                self.assertEqual((account / "settings.json").read_text(), settings)
+                self.assertEqual(codex_file.exists() and codex_file.read_text(), codex)
+            config = home / ".agent-memory/config.json"
+            self.assertEqual(config.stat().st_mode & 0o777, 0o600)
+            self.assertIn("server", json.loads(config.read_text()))
+            bin = str(home / ".agent-memory/bin/agent-memory")
+            hooks = json.loads(settings)["hooks"]
+            events = {e for e, gs in hooks.items() for g in gs for h in g["hooks"] if bin + " hook claude-code" in h["command"]}
+            self.assertEqual(events, {"Stop", "SessionEnd", "SessionStart", "PreCompact", "PostToolUse", "PostToolUseFailure"})
+            start = [h for g in hooks["SessionStart"] for h in g["hooks"] if "agent-memory" in h["command"]]
+            self.assertEqual(start[0]["timeout"], 3)
+            if sys.version_info >= (3, 11):
+                self.assertEqual(codex.count(bin + " hook codex"), 5)  # Stop, SessionEnd, SessionStart, PreCompact, PostToolUse
+            else:
+                self.assertFalse(codex)  # no tomllib: the Codex step is skipped, the rest still applies
 
 
 if __name__ == "__main__":

@@ -19,7 +19,13 @@ def skills_in(owner, scope):
     return sorted(s for s in folder.iterdir() if s.is_dir()) if folder.is_dir() else []
 
 
-def provision(config, profile, default_model, refresh=False):
+def is_agent_memory(command, client):
+    # Matches the installed `bin/agent-memory` and the older hand-written `bin/agent-memory.mjs` entries.
+    return "agent-memory" in command and " hook " + client in command
+
+
+def provision(config, profile, default_model, refresh=False, agent_memory=None):
+    """agent_memory: (node, hooks) with the Claude hooks printed by `agent-memory install`, or None to leave its entries alone."""
     config = config.expanduser().absolute()
     if config.is_symlink():
         raise ValueError("Account directory must be independent, not a symlink")
@@ -181,6 +187,28 @@ def provision(config, profile, default_model, refresh=False):
     # Async: the start hook prints nothing and its process launch is slow during Claude startup, so it must not delay the session.
     register("SessionStart", "session-temp.sh", temp, 30, **{"async": True})
     register("SessionEnd", "session-temp.sh", temp, 30)
+    if agent_memory:
+        # Replace every agent-memory entry, so a changed event set or an old hand-written command never lingers.
+        node, wanted = agent_memory
+        for event in list(hooks):
+            kept = []
+            for group in hooks[event]:
+                items = group.get("hooks", [])
+                others = [h for h in items if not is_agent_memory(h.get("command", ""), "claude-code")]
+                if len(others) < len(items):
+                    if not others:
+                        continue
+                    group = {**group, "hooks": others}
+                kept.append(group)
+            if kept != hooks[event]:
+                if kept:
+                    hooks[event] = kept
+                else:
+                    del hooks[event]
+        # Absolute Node: hooks also run from GUI apps without fnm on PATH. Doctor matches "<bin> hook claude-code", so bin stays unquoted.
+        prefix = "/usr/bin/env CLAUDE_CONFIG_DIR=" + shlex.quote(str(config)) + " " + shlex.quote(node) + " "
+        for event, groups in wanted.items():
+            hooks.setdefault(event, []).extend({**g, "hooks": [{**h, "command": prefix + h["command"]} for h in g["hooks"]]} for g in groups)
     write(settings_path, json.dumps(settings, indent=2) + "\n")
 
     # The tracked post-merge and post-rewrite hooks re-run ai/apply after pulls that change ai/.
