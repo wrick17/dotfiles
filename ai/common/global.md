@@ -28,7 +28,7 @@ Apply [orchestration.md](orchestration.md) together with the rules below. Claude
 - Use existing answers and inspect available evidence before asking questions. Interview only while material uncertainty remains.
 - Finish requirements discovery with a clear outcome, constraints, scope, and observable completion criteria.
 - Proceed directly on clear fixes after tracing the affected flow and relevant callers.
-- Ask when a missing decision materially changes scope or risk. Otherwise state a reasonable assumption and proceed.
+- When blocked on a decision only the user can make, or on an error, first recall from Agent Memory (`agent-memory` skill) whether the user already settled it. Apply a recalled answer after checking it still fits the current evidence. Without one, ask when the missing decision materially changes scope or risk; otherwise state a reasonable assumption and proceed.
 
 ## Implement and verify
 
