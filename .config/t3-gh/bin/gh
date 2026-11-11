@@ -1,19 +1,110 @@
 #!/bin/sh
-# Pin T3 Code's native GitHub calls without changing terminal or agent accounts.
-# T3 imports PATH from the login shell, but does not import its GitHub tokens.
-case "$(/bin/ps -p "$PPID" -o comm=)" in
-  */T3\ Code*.app/Contents/MacOS/T3\ Code*)
-    # Read the named account from the existing Keychain. Never save its token.
-    t3_gh_token=$(/usr/bin/env -u GH_TOKEN -u GITHUB_TOKEN -u GH_DEBUG \
-      GH_CONFIG_DIR="$HOME/.config/gh" \
-      /opt/homebrew/bin/gh auth token --hostname github.com \
-      --user pratyush-poddar_seq) || exit "$?"
-    if [ -z "$t3_gh_token" ]; then
-      echo 'T3 Code: no GitHub credential for pratyush-poddar_seq.' >&2
-      exit 1
-    fi
-    export GH_TOKEN="$t3_gh_token" GITHUB_TOKEN="$t3_gh_token"
-    unset t3_gh_token GH_DEBUG
-    ;;
+# Run every gh call as the GitHub account that owns its target repo.
+# Target, first found: the command's own target (-R/--repo, --owner, the repo or
+# URL argument of repo/pr/issue, the gh api endpoint, search qualifiers), then
+# GH_REPO, then the remote gh itself would pick, else none.
+# Owner wrick17 or the `personal` SSH alias uses wrick17; everything else,
+# including no target, uses pratyush-poddar_seq.
+# Sets GH_TOKEN for this call only. Never switches the active account or saves a token.
+# GH_SHIM_PRINT_LOGIN=1 prints the chosen login and exits (for check.mjs).
+gh=/opt/homebrew/bin/gh
+case $1 in ''|auth|help|-h|--help|version|--version|completion) exec "$gh" "$@" ;; esac
+
+# Print the first argument that is not a flag, skipping the values of the named flags.
+first_positional() {
+  value_flags=$1 skip=; shift
+  for a; do
+    if [ -n "$skip" ]; then skip=; continue; fi
+    case " $value_flags " in *[[:space:]]"$a"[[:space:]]*) skip=1; continue ;; esac
+    case $a in -*) ;; *) printf %s "$a"; return ;; esac
+  done
+}
+
+# Print the owner named by this command's own target, if any.
+command_target() {
+  prev=
+  for a; do
+    case $prev in -R|--repo|--owner) printf %s "$a"; return ;; esac
+    case $a in
+      --repo=*|--owner=*) printf %s "${a#*=}"; return ;;
+      -R?*) printf %s "${a#-R}"; return ;;
+    esac
+    prev=$a
+  done
+  cmd=$1 sub=$2
+  case $cmd in
+    repo|pr|issue)
+      shift 2 2>/dev/null || return
+      [ "$cmd $sub" = 'repo list' ] && case $1 in -*|'') ;; *) printf %s "$1"; return ;; esac
+      # First target-shaped argument; skip values of flags whose text could look like one.
+      skip=
+      for a; do
+        if [ -n "$skip" ]; then skip=; continue; fi
+        case $a in
+          -b|--body|-F|--body-file|-t|--title|--subject|-T|--template|-q|--jq|-S|--search|--description|--homepage|--source) skip=1 ;;
+          https://github.com/*|http://github.com/*|github.com/*|git@*|ssh://*) printf %s "$a"; return ;;
+          -*|*/*/*|.*|/*) ;;
+          */*) [ "$cmd" = repo ] && { printf %s "$a"; return; } ;;
+        esac
+      done
+      ;;
+    api)
+      shift
+      a=$(first_positional '-X --method -H --header -f --raw-field -F --field -q --jq -t --template --input -p --preview --hostname --cache' "$@")
+      a=${a#https://api.github.com}
+      a=${a#/}
+      case $a in repos/\{owner\}/*) ;; repos/*) printf %s "${a#repos/}" ;; esac
+      ;;
+    search)
+      shift 2 2>/dev/null || return
+      for a; do
+        case $a in
+          -*) ;;
+          *repo:*/*) a=${a#*repo:} ;;
+          *user:*) a=${a#*user:} ;;
+          *owner:*) a=${a#*owner:} ;;
+          *) continue ;;
+        esac
+        case $a in -*) ;; *) printf %s "${a%%[ /]*}"; return ;; esac
+      done
+      ;;
+  esac
+}
+
+# Match gh: a remote marked gh-resolved wins, then upstream, github, origin, then the first remote.
+remote_target() {
+  git config --get-regexp '^remote\..*\.(url|gh-resolved)$' 2>/dev/null | awk '
+    { n = $1; sub(/^remote\./, "", n); f = n; sub(/\.[^.]*$/, "", n); sub(/.*\./, "", f) }
+    f == "url" && !(n in url) { url[n] = $2; if (first == "") first = n }
+    f == "gh-resolved" && resolved == "" { resolved = n; value = $2 }
+    END {
+      if (resolved != "") { print (value == "base" ? url[resolved] : value); exit }
+      if ("upstream" in url) print url["upstream"]
+      else if ("github" in url) print url["github"]
+      else if ("origin" in url) print url["origin"]
+      else if (first != "") print url[first]
+    }'
+}
+
+target=$(command_target "$@")
+[ -n "$target" ] || target=$GH_REPO
+[ -n "$target" ] || target=$(remote_target)
+target=$(printf %s "$target" | tr '[:upper:]' '[:lower:]')
+
+owner=${target#*github.com[:/]}
+case $target in
+  *@personal:*|personal:*|*@personal/*) login=wrick17 ;;
+  *) case ${owner%%/*} in wrick17) login=wrick17 ;; *) login=pratyush-poddar_seq ;; esac ;;
 esac
+if [ -n "$GH_SHIM_PRINT_LOGIN" ]; then echo "$login"; exit 0; fi
+
+# Read the named account from the existing keyring, ignoring env tokens and debug logging.
+token=$(/usr/bin/env -u GH_TOKEN -u GITHUB_TOKEN -u GH_DEBUG \
+  GH_CONFIG_DIR="$HOME/.config/gh" \
+  "$gh" auth token --hostname github.com --user "$login") && [ -n "$token" ] || {
+  echo "gh shim: no keyring credential for $login; run 'gh auth login' for that account." >&2
+  exit 1
+}
+export GH_TOKEN="$token"
+unset token
 exec /opt/homebrew/bin/gh "$@"
