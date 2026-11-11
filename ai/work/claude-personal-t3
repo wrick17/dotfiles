@@ -54,7 +54,9 @@ def main():
     os.close(writer)
     os.set_inheritable(descriptor, True)
     environment["CLAUDE_CODE_OAUTH_TOKEN_FILE_DESCRIPTOR"] = str(descriptor)
-    settings = json.dumps({"model": "claude-opus-5-5", "availableModels": ["opus", "sonnet", "haiku"]})
+    # Family aliases allow every version. Keep it explicit so it overrides the work policy's sonnet/haiku list.
+    settings = json.dumps({"model": "claude-opus-5-5",
+                           "availableModels": ["fable", "mythos", "opus", "sonnet", "haiku"]})
     os.execve(executable, [executable, "--managed-settings", settings, *arguments], environment)
 
 
