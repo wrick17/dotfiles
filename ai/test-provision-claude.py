@@ -197,6 +197,14 @@ class ProvisionTest(unittest.TestCase):
                                  {e: [{**g[0]["hooks"][0], "command": prefix + bin + " hook claude-code"}] for e, g in installed.items()})
                 self.assertEqual(hooks["SessionStart"][0], {"hooks": [foreign]})
                 self.assertEqual(hooks["PostToolUse"], [{"matcher": "^mcp__t3", "hooks": [foreign]}])
+                # A current install names its stable bin/node link: only the account env is added, never a second Node.
+                current = bin[:-len("agent-memory")] + "node " + bin + " hook claude-code"
+                stable = {e: [{"hooks": [{**g[0]["hooks"][0], "command": current}]}] for e, g in installed.items()}
+                module.provision(config, "personal", "opus", agent_memory=("/abs/node", stable))
+                hooks = json.loads((config / "settings.json").read_text())["hooks"]
+                mine = [h["command"] for gs in hooks.values() for g in gs for h in g["hooks"] if "agent-memory" in h["command"]]
+                self.assertEqual(mine, ["/usr/bin/env CLAUDE_CONFIG_DIR=" + str(config) + " " + current] * len(installed))
+                module.provision(config, "personal", "opus", agent_memory=("/abs/node", installed))  # back to the old form for the checks below
 
                 (root / "agent.json").write_text(json.dumps({"server": "s", "token_file": "t", "facts": {"timeout_ms": 2000}, "inject": {"enabled": False}}))
                 (root / "agent.json").chmod(0o600)
@@ -224,6 +232,10 @@ class ProvisionTest(unittest.TestCase):
                 self.assertEqual(apply.write_codex_hooks("/abs/node", toml), "Codex: Agent Memory hooks unchanged")
                 self.assertEqual(text, kept + "\n" + apply.BEGIN + toml.replace('command = "', 'command = "/abs/node ') + apply.END)
                 block = "\n" + apply.BEGIN + toml.replace('command = "', 'command = "/abs/node ') + apply.END
+                # A current install names its stable bin/node link: the block replaces the old one and keeps the command as printed.
+                stable = toml.replace('command = "', 'command = "' + bin[:-len("agent-memory")] + 'node ')
+                apply.write_codex_hooks("/abs/node", stable)
+                self.assertEqual((codex / "config.toml").read_text(), kept + "\n" + apply.BEGIN + stable + apply.END)
                 # Headers with trailing comments end the old table: neither [agents] nor the unrelated hook after it is removed.
                 after = ('[agents] # worker limits\nmax = 10\n\n[[hooks.Stop]]\n[[hooks.Stop.hooks]] # unrelated hook\n'
                          'type = "command"\ncommand = "rtk hook codex-other"\n')
@@ -277,8 +289,13 @@ class ProvisionTest(unittest.TestCase):
             self.assertEqual(events, {"Stop", "SessionEnd", "SessionStart", "PreCompact", "PostToolUse", "PostToolUseFailure"})
             start = [h for g in hooks["SessionStart"] for h in g["hooks"] if "agent-memory" in h["command"]]
             self.assertEqual(start[0]["timeout"], 3)
+            # Every command runs through the client's stable bin/node link, never with a second Node in front.
+            node = str(home / ".agent-memory/bin/node")
+            commands = {h["command"] for gs in hooks.values() for g in gs for h in g["hooks"] if "agent-memory" in h["command"]}
+            self.assertEqual(commands, {"/usr/bin/env CLAUDE_CONFIG_DIR=" + str(account) + " " + node + " " + bin + " hook claude-code"})
             if sys.version_info >= (3, 11):
-                self.assertEqual(codex.count(bin + " hook codex"), 5)  # Stop, SessionEnd, SessionStart, PreCompact, PostToolUse
+                self.assertEqual(codex.count('command = "' + node + " " + bin + ' hook codex"'), 5)  # Stop, SessionEnd, SessionStart, PreCompact, PostToolUse
+                self.assertEqual(codex.count(" hook codex"), 5)
             else:
                 self.assertFalse(codex)  # no tomllib: the Codex step is skipped, the rest still applies
 

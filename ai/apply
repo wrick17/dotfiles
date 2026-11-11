@@ -32,6 +32,8 @@ END = "# END agent-memory hooks\n"
 # A TOML table header: quoted key parts may hold any character; a trailing comment is allowed.
 HEADER = re.compile(r"""^\s*\[\[?\s*((?:"(?:\\.|[^"\\])*"|'[^']*'|[^\]"'#])+?)\s*\]\]?\s*(?:#.*)?$""")
 COMMAND = re.compile(r'^\s*command\s*=\s*"((?:\\.|[^"\\])*)"', re.M)
+# An install command that already names its interpreter: an absolute path ending in /bin/node, then the script.
+NODE_PREFIX = r"/\S*/bin/node "
 
 
 def ponytail_tag(text):
@@ -209,8 +211,10 @@ def write_codex_hooks(node, codex):
         return f"Warning: Codex: {file} left unchanged; the old Agent Memory hooks could not be removed without touching other settings. Remove them by hand"
     if new and not new.endswith("\n"):
         new += "\n"
-    # Absolute Node: Codex may run without fnm on PATH. Doctor matches "<bin> hook codex", so bin stays unquoted.
-    new += "\n" + BEGIN + codex.replace('command = "', 'command = "' + json.dumps(shlex.quote(node))[1:-1] + " ") + END
+    # Absolute Node: Codex may run without fnm on PATH. Current installs already start with their stable bin/node link, which keeps
+    # Codex's trust hash across Node upgrades; only the older bare "<bin> hook codex" form gets this Node. Doctor matches
+    # "<bin> hook codex", so bin stays unquoted.
+    new += "\n" + BEGIN + re.sub(r'command = "(?!' + NODE_PREFIX + ')', lambda m: m.group(0) + json.dumps(shlex.quote(node))[1:-1] + " ", codex) + END
     if new == text:
         return "Codex: Agent Memory hooks unchanged"
     try:

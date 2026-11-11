@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 import json
 import os
 from pathlib import Path
+import re
 import shutil
 import shlex
 import subprocess
@@ -205,10 +206,12 @@ def provision(config, profile, default_model, refresh=False, agent_memory=None):
                     hooks[event] = kept
                 else:
                     del hooks[event]
-        # Absolute Node: hooks also run from GUI apps without fnm on PATH. Doctor matches "<bin> hook claude-code", so bin stays unquoted.
-        prefix = "/usr/bin/env CLAUDE_CONFIG_DIR=" + shlex.quote(str(config)) + " " + shlex.quote(node) + " "
+        # Absolute Node: hooks also run from GUI apps without fnm on PATH. Current installs already start with their stable bin/node
+        # link; only the older bare "<bin> hook claude-code" form gets this Node. Doctor matches "<bin> hook claude-code", so bin stays unquoted.
+        env = "/usr/bin/env CLAUDE_CONFIG_DIR=" + shlex.quote(str(config)) + " "
+        prefix = lambda command: env + ("" if re.match(r"/\S*/bin/node ", command) else shlex.quote(node) + " ") + command
         for event, groups in wanted.items():
-            hooks.setdefault(event, []).extend({**g, "hooks": [{**h, "command": prefix + h["command"]} for h in g["hooks"]]} for g in groups)
+            hooks.setdefault(event, []).extend({**g, "hooks": [{**h, "command": prefix(h["command"])} for h in g["hooks"]]} for g in groups)
     write(settings_path, json.dumps(settings, indent=2) + "\n")
 
     # The tracked post-merge and post-rewrite hooks re-run ai/apply after pulls that change ai/.
