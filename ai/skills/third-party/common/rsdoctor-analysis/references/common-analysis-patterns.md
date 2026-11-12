@@ -1,8 +1,40 @@
-# Common Analysis Patterns
+# Common analysis patterns
 
 Use this reference for common Rspack/Webpack bundle analysis questions after locating `rsdoctor-data.json`.
 
-## Similar Packages
+## ROI-Based Lever selection
+
+Use this pattern before choosing detailed analysis commands. The goal is to find the biggest measured cost bucket first, then select the smallest follow-up that can prove or fix that bucket.
+
+Recommended triage order:
+
+1. Compare assets/media, top packages/modules, duplicate or cross-chunk cost, retained tree-shaking waste, and build-time cost.
+2. Pick the largest bucket with a plausible project-side fix.
+3. Fetch only the narrow supporting evidence required for that bucket.
+4. Defer issuer/reference-chain tracing until it will change ownership, confidence, or the recommended fix.
+5. If the largest bucket is expected or structurally required, call it out as a wall and move to the next meaningful bucket.
+
+Lever map:
+
+| Dominant bucket           | High-ROI first pass                                                                                               | Lower-ROI or second pass                                                    |
+| ------------------------- | ----------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| Assets/media              | Compress images, convert formats, deduplicate repeated assets, subset fonts, lazy-load non-critical media         | JS tree-shaking work that saves only tens of KB                             |
+| One or few large packages | Check direct dependency necessity, lighter alternatives, deep imports, async boundaries, or route-level splitting | Broad package-list browsing without a top offender                          |
+| Duplicate packages        | Use `packages duplicates` / E1001 evidence, then resolve compatible versions or alias deliberately                | Reference-chain tracing before the duplicate size is proven material        |
+| Cross-chunk duplication   | Inspect E1002/cross-chunk summaries, then consider `splitChunks`/cache group changes or shared vendor extraction  | Splitting small shared modules that add request overhead                    |
+| Retained modules          | Start with emitted CJS/barrel/side-effects rows sorted by gzip size                                               | Deleting source that is already eliminated by the bundler                   |
+| Build-time cost           | Use loader/plugin/directories timing and optimize the measured slow path                                          | Build-performance advice when the user asked only about shipped bundle size |
+
+Recommendation rules:
+
+- Prefer `gzipSize` for shipped-user cost and `parsedSize` for parse/execute or code-volume discussions.
+- For Webpack/Rspack chunk recommendations, distinguish initial/entry chunks from async chunks. A large async chunk is usually lower priority than a large initial chunk unless the user asks about that route or interaction.
+- For package replacement advice, require direct dependency evidence or clear ownership. Do not recommend replacing an indirect package just because it appears in `packageGraph`.
+- For duplicate-package advice, mention compatibility risk when versions cross major/minor boundaries or when packages may ship resources as side effects.
+- For retained-module advice, include the category (`cjs`, `barrel`, `side-effects`) and the largest concrete paths before suggesting config or source changes.
+- Stop when the likely savings are below the user's stated goal or clearly smaller than another measured bucket.
+
+## Similar packages
 
 Use direct dependency package data to inspect similar packages. Start with `packages direct-dependencies` or `query packages_direct_dependencies`, then check known package families and other potentially similar packages.
 
@@ -16,13 +48,13 @@ Suggested flow:
 
 Similar package families:
 
-1. `lodash`, `lodash-es`, `string_decode`
+1. `lodash`, `lodash-es`
    - Consider migrating from `lodash` to `lodash-es` for better tree-shaking support when both are present.
 2. `dayjs`, `moment`, `date-fns`, `js-joda`
    - Consider replacing `moment` with `dayjs` for smaller bundle size when both are present and project requirements allow it.
 3. `antd`, `material-ui`, `semantic-ui-react`, `arco-design`
 4. `axios`, `node-fetch`
-5. `redux`, `mobx`, `Zustand`, `Recoil`, `Jotai`
+5. `redux`, `mobx`, `zustand`, `recoil`, `jotai`
 6. `chalk`, `colors`, `picocolors`, `kleur`
 7. `fs-extra`, `graceful-fs`
 
@@ -30,7 +62,7 @@ If there are no similar packages, simply say there are no similar packages. Do n
 
 Keep the response simple: name only coexisting known-family packages or other direct-dependency candidates with clear overlap, explain why coexistence is worth reviewing, and give one replacement direction if the evidence supports it.
 
-## Media Asset Analysis
+## Media asset analysis
 
 Use `assets media` or `bundle optimize` when checking oversized image, font, or video assets. Return recommendations only for assets that are actually oversized or relevant to the user's question.
 
@@ -81,7 +113,7 @@ Video recommendations:
   - `metadata`: downloads metadata only, often around 3% of file size.
   - `auto`: downloads the full video; use only when playback is very likely.
 
-## Bundle Optimize
+## Bundle optimize
 
 Use `bundle optimize` / `build optimize` as an aggregate optimization pass. It can combine evidence from:
 
@@ -90,9 +122,13 @@ Use `bundle optimize` / `build optimize` as an aggregate optimization pass. It c
 - Media asset checks (`assets media`).
 - Chunk checks (`chunks list`, `chunks large`, or chunk details) for oversized resources and `splitChunks` recommendations.
 
-Do not treat aggregate output as enough by itself when the recommendation needs concrete evidence. Fetch the narrow supporting data with `--filter` before recommending a config or dependency change.
+Do not run `bundle optimize` / `build optimize` in the default analysis path. Use it only for a user-requested optimization deep dive or when the compact default evidence set is missing required fields.
 
-## Build Performance
+When using it, keep output compact with `--compact`, narrow `--filter` fields, and pagination options such as `--side-effects-page-size 10`. If the command still returns thousands of lines, stop and switch to narrower supporting commands.
+
+Do not treat aggregate output as enough by itself when the recommendation needs concrete evidence. Fetch the narrow supporting data before recommending a config or dependency change.
+
+## Build performance
 
 Use these as short recommendation candidates when Rsdoctor evidence points to build-time cost, loader cost, too many modules, or slow dev rebuilds. Source: [Rsbuild build performance guide](https://rsbuild.rs/zh/guide/optimization/build-performance).
 
@@ -105,7 +141,7 @@ Use these as short recommendation candidates when Rsdoctor evidence points to bu
 - Rsdoctor loader evidence: if `sass-loader` time is concentrated in third-party package directories and those packages ship CSS artifacts, recommend importing the CSS artifact or narrowing Sass rule `include` to app source plus specific allowlisted theme packages.
 - Call out tradeoffs: development Browserslist and source map changes can make dev output differ from production or reduce debugging detail.
 
-## Retained Module Tree-shaking Analysis
+## Retained module Tree-shaking analysis
 
 Use `tree-shaking retained-modules` for first-pass tree-shaking evidence when the goal is to find retained emitted modules by reason category. Prefer it over broad `tree-shaking summary` when the user asks for top retained modules, CommonJS retention, barrel imports, side effects, or gzip-size priority.
 
@@ -117,7 +153,7 @@ rsdoctor-agent tree-shaking retained-modules \
   --emitted-only \
   --category cjs,barrel,side-effects \
   --sort gzipSize \
-  --limit 50 \
+  --limit 10 \
   --filter id,path,packageName,version,category,size,chunks,bailoutReason,recommendation
 ```
 
@@ -126,11 +162,12 @@ Guidance:
 1. Keep `--emitted-only` by default so findings map to shipped bundle impact.
 2. Use `--category cjs,barrel,side-effects` for optimization scans; narrow `--category` when the user asks about one class.
 3. Sort by `gzipSize` for bundle impact, unless the user asks for source or parsed size.
-4. Keep `--limit` bounded. Start with `50` or lower for first-pass analysis.
-5. Report rows as `Path | Package | Category | Gzip/Parsed Size | Chunks | Bailout | Recommendation`.
-6. Treat results as first-pass evidence. Use `modules issuer` only after the user asks to trace who imported a retained module.
+4. Keep `--limit` bounded. Use `--limit 10` for default analysis. Increase to `50` only for user-requested deep dives.
+5. Do not add `--compact`; `tree-shaking retained-modules` output size is controlled with `--limit` and `--filter`.
+6. Report rows as `Path | Package | Category | Gzip/Parsed Size | Chunks | Bailout | Recommendation`.
+7. Treat results as first-pass evidence. Use `modules issuer` only after the user asks to trace who imported a retained module.
 
-## Common Questions
+## Common questions
 
 ### Why is a module not tree-shaken?
 
@@ -157,7 +194,9 @@ Example: "Show all modules with side effects."
 - Fall back to `tree-shaking summary` or the relevant module-side-effects command only when retained-module output is insufficient.
 - Filter to module id, path, package, size, chunks, bailout reason, and recommendation.
 - List modules with non-empty `bailoutReason` containing `side_effects`.
-- Limit 50 moduLes. Sort by size, give priority to the large size.
+- Use `--limit 10` for default output. Increase only after user confirmation.
+- If falling back to `tree-shaking summary` or `modules side-effects`, use `--page-size 10` or `--side-effects-page-size 10`, keep the same narrow fields, and stop expanding when one command exceeds `5k` tokens or `500 KB` raw output.
+- Sort by size, give priority to the largest emitted modules.
 
 ### Why is a package duplicated?
 
@@ -172,9 +211,10 @@ Example: "Why is package X duplicated?"
 - Use the E1007 rule results directly to identify modules that are not tree-shaken due to side effects. By `tree-shaking summary`.
 - If further details are needed, you may also use `tree-shaking retained-modules --emitted-only --category side-effects` and filter to module id, path, package, size, chunks, bailout reason, and recommendation.
 - List modules with `bailoutReason` containing `side_effects`.
+- Use `--limit 10` by default and the same `5k` token / `500 KB` raw-output stop rule for fallback commands.
 - Show `issuerPath` when needed to identify the import source.
 
-## Output Style
+## Output style
 
 - For dependency chains, use a tree or arrow notation.
 - For module details, use a table or key-value list.
