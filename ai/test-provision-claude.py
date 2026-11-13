@@ -268,7 +268,9 @@ class ProvisionTest(unittest.TestCase):
             shutil.copy(Path(__file__).with_name("provision-claude.py"), ai)
             home, account = root / "home", root / "account"
             (home / ".codex").mkdir(parents=True)
-            env = {"HOME": str(home), "CODEX_HOME": str(home / ".codex"), "AGENT_MEMORY_SOURCE": str(source)}
+            # The fake HOME hides fnm's default dirs, so put the real Node 24 first on PATH.
+            path = str(Path(apply.find_node()).parent) + os.pathsep + os.environ.get("PATH", "")
+            env = {"HOME": str(home), "CODEX_HOME": str(home / ".codex"), "AGENT_MEMORY_SOURCE": str(source), "PATH": path}
             with patch.object(apply, "AI", ai), patch.object(apply, "ACCOUNTS", root / "config/ai-accounts"), \
                     patch.object(apply, "load_launchd", lambda plist: "launchd skipped in test"), patch.dict(os.environ, env), \
                     patch("sys.argv", ["apply", "--account", str(account), "personal", "opus"]), contextlib.redirect_stdout(io.StringIO()), \

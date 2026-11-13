@@ -88,8 +88,10 @@ def codex_home():
 
 def find_node():
     """An absolute Node >= 24 from PATH or fnm's installed versions, newest fnm version first; None if there is none."""
-    versions = Path(os.environ.get("FNM_DIR") or Path.home() / ".local/share/fnm") / "node-versions"
-    installed = sorted(versions.glob("v*/installation/bin/node"), key=lambda p: [int(n) for n in re.findall(r"\d+", p.parts[-4])], reverse=True)
+    # fnm's default dir is ~/.local/share/fnm on Linux and ~/Library/Application Support/fnm on macOS.
+    dirs = [Path(os.environ["FNM_DIR"])] if os.environ.get("FNM_DIR") else [Path.home() / ".local/share/fnm", Path.home() / "Library/Application Support/fnm"]
+    found = [p for d in dirs for p in (d / "node-versions").glob("v*/installation/bin/node")]
+    installed = sorted(found, key=lambda p: [int(n) for n in re.findall(r"\d+", p.parts[-4])], reverse=True)
     for node in ([Path(shutil.which("node"))] if shutil.which("node") else []) + installed:
         if "fnm_multishells" in str(node):
             node = node.resolve()  # fnm deletes the per-shell link when that shell exits
