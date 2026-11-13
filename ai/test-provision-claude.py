@@ -72,6 +72,7 @@ class ProvisionTest(unittest.TestCase):
                 self.assertTrue((config / "plugins/sentinel").is_symlink())
                 settings = json.loads((config / "settings.json").read_text())
                 self.assertEqual(settings["distinct"], config.name)
+                self.assertEqual(settings["cleanupPeriodDays"], 3650)
                 self.assertIn(str(config / "hooks"), settings["hooks"]["SessionStart"][0]["hooks"][0]["command"])
             personal = accounts[1]
             (personal / "skills/test/SKILL.md").write_text("Personal edit")

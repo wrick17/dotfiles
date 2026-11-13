@@ -165,6 +165,7 @@ def provision(config, profile, default_model, refresh=False, agent_memory=None):
     settings_path = config / "settings.json"
     settings = json.loads(settings_path.read_text()) if settings_path.exists() else {}
     settings.setdefault("model", default_model)
+    settings.setdefault("cleanupPeriodDays", 3650)  # keep transcripts; Claude Code deletes them after 30 days by default
     hooks = settings.setdefault("hooks", {})
     pre = hooks.setdefault("PreToolUse", [])
     if not any(h.get("command") == "rtk hook claude" for group in pre for h in group.get("hooks", [])):
