@@ -48,7 +48,7 @@ Anything you post for the user goes out in their name. Write for a reader who ha
 ## Surface markup
 
 - **GitHub:** GitHub-flavored Markdown. Link issues and PRs as `#123`. Use `<details>` for folded proof.
-- **Jira:** Through the Jira Connector, use the markup the connector's API takes, whether wiki markup or ADF.
+- **Jira and Confluence:** Through the Atlassian agent, use the markup the Atlassian API takes, whether wiki markup, ADF, or Confluence storage format.
 - **Slack and chat:** Use the app's own markup, such as Slack mrkdwn (`*bold*`, `<url|text>`). Its headings and tables don't render. Put the headline in the first line, since that's what previews show. Reply in threads.
 - **Email:** A subject that states the point. A one-line opener, then the same headline-and-bullets shape. Sign off as the user.
 - **Docs and pages (Notion, Google Docs):** Use the editor's native headings, lists, and tables.

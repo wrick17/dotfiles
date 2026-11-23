@@ -6,7 +6,7 @@
 - Load the matching skill before the work it covers:
   - `github-accounts`: before any Git or GitHub operation that touches a remote.
   - `sequoia-pr`: before creating, updating, or monitoring any PR. Its Sequoia PR protocol is a hard requirement.
-  - `jira-connector`: whenever the user gives a Jira ticket ID or URL.
+  - `atlassian`: for anything Atlassian, such as a Jira ticket ID or URL or a Confluence page.
   - `sequoia-feature-workspace`: when starting, resuming, or cleaning up a new Sequoia app feature.
   - `sequoia-frontend`: for Sequoia frontend work, according to its task triggers.
 
