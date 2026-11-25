@@ -51,7 +51,11 @@ class UpdateTest(unittest.TestCase):
             (vendored / "SKILL.md").write_text("ONE local\ntwo\nthree\nFOUR mine\n")
             (repo / "skills/s/SKILL.md").write_text("one\ntwo\nthree\nFOUR again\n")
             git(repo, "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-qam", "clash")
-            notes = update.merge_skill("s", spec, git(repo, "rev-parse", "HEAD"))
+            vendored.chmod(0o555)  # merge scratch must go to $TMPDIR, not beside tracked skill files
+            try:
+                notes = update.merge_skill("s", spec, git(repo, "rev-parse", "HEAD"))
+            finally:
+                vendored.chmod(0o755)
             self.assertIn("conflict markers", notes[0])
 
     def test_latest_tag_sorts_numerically_and_ignores_other_tags(self):

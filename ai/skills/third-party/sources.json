@@ -17,37 +17,37 @@
     "architect": {
       "repo": "cursor-plugins",
       "path": "pstack/skills/architect",
-      "base": "c742dd61706fbacc1b95f1a20b7b988cf096ce6c"
+      "base": "63912a91d52c43946f974f2aaf661334a6116a82"
     },
     "blast-radius": {
       "repo": "cursor-plugins",
       "path": "pstack/skills/blast-radius",
-      "base": "c742dd61706fbacc1b95f1a20b7b988cf096ce6c"
+      "base": "63912a91d52c43946f974f2aaf661334a6116a82"
     },
     "codebase-design": {
       "repo": "mattpocock-skills",
       "path": "skills/engineering/codebase-design",
-      "base": "59db609eb1e18aaf59b63284d0e52255aff0c63c"
+      "base": "4ae2317ddb22b046e26455e4f9c9b3aaaf62212d"
     },
     "diagnosing-bugs": {
       "repo": "mattpocock-skills",
       "path": "skills/engineering/diagnosing-bugs",
-      "base": "59db609eb1e18aaf59b63284d0e52255aff0c63c"
+      "base": "4ae2317ddb22b046e26455e4f9c9b3aaaf62212d"
     },
     "grill-me": {
       "repo": "mattpocock-skills",
       "path": "skills/productivity/grill-me",
-      "base": "59db609eb1e18aaf59b63284d0e52255aff0c63c"
+      "base": "4ae2317ddb22b046e26455e4f9c9b3aaaf62212d"
     },
     "handoff": {
       "repo": "mattpocock-skills",
       "path": "skills/productivity/handoff",
-      "base": "59db609eb1e18aaf59b63284d0e52255aff0c63c"
+      "base": "4ae2317ddb22b046e26455e4f9c9b3aaaf62212d"
     },
     "how": {
       "repo": "cursor-plugins",
       "path": "pstack/skills/how",
-      "base": "c742dd61706fbacc1b95f1a20b7b988cf096ce6c"
+      "base": "63912a91d52c43946f974f2aaf661334a6116a82"
     },
     "resolving-merge-conflicts": {
       "repo": "mattpocock-skills",
@@ -58,43 +58,43 @@
     "show-me-your-work": {
       "repo": "cursor-plugins",
       "path": "pstack/skills/show-me-your-work",
-      "base": "c742dd61706fbacc1b95f1a20b7b988cf096ce6c"
+      "base": "63912a91d52c43946f974f2aaf661334a6116a82"
     },
     "teach": {
       "repo": "cursor-plugins",
       "path": "pstack/skills/teach",
-      "base": "c742dd61706fbacc1b95f1a20b7b988cf096ce6c"
+      "base": "63912a91d52c43946f974f2aaf661334a6116a82"
     },
     "technical-writing": {
       "repo": "cursor-plugins",
       "path": "pstack/skills/technical-writing",
-      "base": "c742dd61706fbacc1b95f1a20b7b988cf096ce6c"
+      "base": "63912a91d52c43946f974f2aaf661334a6116a82"
     },
     "unslop": {
       "repo": "cursor-plugins",
       "path": "pstack/skills/unslop",
-      "base": "c742dd61706fbacc1b95f1a20b7b988cf096ce6c"
+      "base": "63912a91d52c43946f974f2aaf661334a6116a82"
     },
     "wait-what": {
       "repo": "mattpocock-skills",
       "path": "skills/productivity/wait-what",
-      "base": "59db609eb1e18aaf59b63284d0e52255aff0c63c"
+      "base": "4ae2317ddb22b046e26455e4f9c9b3aaaf62212d"
     },
     "why": {
       "repo": "cursor-plugins",
       "path": "pstack/skills/why",
-      "base": "c742dd61706fbacc1b95f1a20b7b988cf096ce6c"
+      "base": "63912a91d52c43946f974f2aaf661334a6116a82"
     },
     "writing-for-agents": {
       "repo": "mattpocock-skills",
       "path": "skills/productivity/writing-for-agents",
-      "base": "59db609eb1e18aaf59b63284d0e52255aff0c63c"
+      "base": "4ae2317ddb22b046e26455e4f9c9b3aaaf62212d"
     }
   },
   "plugins": {
     "ponytail": {
       "github": "DietrichGebert/ponytail",
-      "tag": "v5.3.2"
+      "tag": "v5.3.3"
     }
   }
 }

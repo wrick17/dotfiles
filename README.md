@@ -216,10 +216,10 @@ The provisioning helper sets this repo's `core.hooksPath` to `ai/git-hooks`. It 
 
 Third-party skills from pstack and mattpocock are vendored into `ai/skills/third-party/common` as tracked, agent-agnostic copies: no product, host, or model names in their instructions. `ai/skills/third-party/sources.json` records each skill's upstream repository, path, and the upstream commit its copy is based on. Archify stays a link into its checkout because its only host names are brand-logo data. The rstack family, `mf`, and `pdf` have no recorded upstream and are maintained by hand.
 
-Upstream checkouts stay in `ai/skills/third-party/.sources`, outside the parent Git history, as clean mirrors. Do not edit them; edit the vendored copy. `~/skills/update` fast-forwards each checkout and three-way merges upstream changes since the recorded commit into the vendored copies. It moves the Ponytail pin to the newest upstream `vX.Y.Z` tag, found over HTTPS, and runs `sync-ponytail`. Then it checks every vendored skill for host-specific wording:
+Upstream checkouts stay in `ai/skills/third-party/.sources`, outside the parent Git history, as clean mirrors. Do not edit them; edit the vendored copy. `~/skills/update` fast-forwards each checkout and three-way merges upstream changes since the recorded commit into the vendored copies. It moves the Ponytail pin to the newest upstream `vX.Y.Z` tag, found over HTTPS, and runs `sync-ponytail`. Then it checks every vendored skill for host-specific wording. Merge scratch files go under `$TMPDIR`, so point it at the session temp folder:
 
 ```sh
-rtk proxy ~/skills/update          # pull upstream, merge, then lint
+TMPDIR=<session temp folder> rtk proxy ~/skills/update   # pull upstream, merge, then lint
 rtk proxy ~/skills/update --lint   # lint only
 rtk proxy python3 ~/skills/test-update.py
 ```

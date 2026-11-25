@@ -8,6 +8,7 @@ import re
 import shutil
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent / "third-party"
@@ -77,15 +78,15 @@ def merge_skill(name, spec, head):
         elif not local.exists():
             notes.append(f"{name}: upstream changed {file}, which was deleted locally; skipped")
         else:
-            with_files = []
-            for label, data in (("base", old), ("theirs", new)):
-                temp = local.with_name(local.name + f".{label}.tmp")
-                temp.write_bytes(data)
-                with_files.append(temp)
-            result = subprocess.run(["git", "merge-file", "-L", "local", "-L", "base", "-L", "upstream",
-                                     str(local), *map(str, with_files)], capture_output=True)
-            for temp in with_files:
-                temp.unlink()
+            # Scratch goes under $TMPDIR (set it to the session temp folder), never beside tracked skills.
+            with tempfile.TemporaryDirectory() as scratch:
+                with_files = []
+                for label, data in (("base", old), ("theirs", new)):
+                    temp = Path(scratch) / label
+                    temp.write_bytes(data)
+                    with_files.append(str(temp))
+                result = subprocess.run(["git", "merge-file", "-L", "local", "-L", "base", "-L", "upstream",
+                                         str(local), *with_files], capture_output=True)
             if result.returncode:
                 notes.append(f"{name}: conflict markers in {local.relative_to(ROOT)}")
     spec["base"] = head

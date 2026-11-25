@@ -18,7 +18,7 @@ Show this to the user, then immediately proceed to Step 2. The user reads and th
 
 ### 2. Produce independent designs
 
-Produce three **radically different** interfaces for the deepened module. Run the passes in parallel when the host supports delegation. Otherwise, run the same briefs serially.
+Spawn 3+ sub-agents in parallel, each with a fresh context window. Each must produce a **radically different** interface for the deepened module.
 
 Give each pass a separate technical brief (file paths, coupling details, dependency category from [DEEPENING.md](DEEPENING.md), what sits behind the seam). The brief is independent of the user-facing problem-space explanation in Step 1. Give each pass a different design constraint:
 
