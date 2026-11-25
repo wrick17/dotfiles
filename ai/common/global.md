@@ -78,6 +78,14 @@ Load the matching skill before the work it covers. These skills hold the full ru
 - Honor an explicitly requested format.
 - Report what changed, how it was verified, and material limitations. Stop when the agreed outcome is complete.
 
+## Telegram pings
+
+- When the `agent_notify` MCP server is connected, the main thread calls its `notify` tool. Sub-agents never call it.
+- Ping when the user must act outside the thread (a manual step, login, review, or decision) with kind `action`; when you wait on an answer to a question with `question`; when the whole task is done with `done`; when the task failed or is blocked with `failed`; and at important milestones with `milestone`. Never ping for routine progress.
+- `message` is one plain line naming the task and what happened or what is needed. Leave details in the thread.
+- In a T3 session, pass `thread_link`: the `link` field of `"$T3CODE_CLI_PATH" thread show --json "$T3CODE_THREAD_ID"`.
+- A failed ping never blocks the work. Mention it in the reply and continue.
+
 ## Improve the workflow
 
 - Adjust process when observed failures or repeated overhead justify it.

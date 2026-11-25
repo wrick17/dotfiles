@@ -253,6 +253,15 @@ codex mcp add agent_memory --url https://memory.wrick17.com/mcp
 codex mcp login agent_memory
 ```
 
+The `agent_notify` server (repo `~/Projects/personal/agent-notify`, Cloudflare Worker at notify.wrick17.com) gives agents a `notify` tool that sends a one-line Telegram message from @wrick_agent_notify_bot. It signs in through the same Clerk instance as Agent Memory. Add it the same way:
+
+```sh
+claude mcp add --scope user --transport http agent_notify https://notify.wrick17.com/mcp
+claude mcp login agent_notify   # or /mcp inside that account
+codex mcp add agent_notify --url https://notify.wrick17.com/mcp
+codex mcp login agent_notify
+```
+
 BothQ (`bothq`) stays a read-only legacy archive; no rule writes to it.
 
 Run `claude mcp list` to check connections. Complete each client's OAuth sign-in with `claude mcp login homeassistant` and `claude mcp login t3-code`, or use `/mcp` inside Claude Code. Home Assistant uses a URL client ID with a matching local callback port. Keep account tokens in each client's supported credential storage. Existing claude.ai connectors stay managed by Claude.
