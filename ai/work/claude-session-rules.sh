@@ -63,5 +63,6 @@ Before acting on any non-trivial task:
 1. Apply the memory and journal rules from those files. Recall prior context and open or resume the task journal before the first action.
 2. Load each skill the rules require before applying it.
 3. Apply the task tiers in orchestration.md to choose between doing the work in the main thread and running the delegated pipeline.
+4. Before the final reply of every turn, run the Telegram pings check in global.md. When the turn asks a question, needs the user to act, or finishes or fails the task, load and call the agent_notify notify tool first.
 EOF
 exit 0

@@ -77,11 +77,19 @@ Load the matching skill before the work it covers. These skills hold the full ru
 - Keep small plans and recommendations inline in chat.
 - Honor an explicitly requested format.
 - Report what changed, how it was verified, and material limitations. Stop when the agreed outcome is complete.
+- Before the final reply of every turn, run the Telegram pings check below.
 
 ## Telegram pings
 
-- When the `agent_notify` MCP server is connected, the main thread calls its `notify` tool. Sub-agents never call it.
-- Ping when the user must act outside the thread (a manual step, login, review, or decision) with kind `action`; when you wait on an answer to a question with `question`; when the whole task is done with `done`; when the task failed or is blocked with `failed`; and at important milestones with `milestone`. Never ping for routine progress.
+- Hard rule: when the `agent_notify` MCP server is connected, the main thread pings through its `notify` tool. Skipping a required ping breaks this file. Sub-agents never call it.
+- The tool is usually deferred. Load it first: in Claude Code, ToolSearch `select:mcp__agent_notify__notify`.
+- Before ending every turn, check whether the turn ends in one of these cases. If it does, call `notify` before you write the final reply:
+  - `question`: the turn asks the user something or waits on their answer, including `AskUserQuestion` and approval cards.
+  - `action`: the user must act outside the thread, such as a manual step, login, review, link approval, or decision.
+  - `done`: the whole task is complete.
+  - `failed`: the task failed or is blocked.
+  - `milestone`: an important milestone, such as a PR opened or checks finished.
+- Never ping for routine progress.
 - `message` is one plain line saying what happened or what is needed. Leave details in the thread.
 - Pass the context fields, which show on a second line: `task`, the T3 thread title or else a short task name; `project`, the repository name (basename of `git rev-parse --show-toplevel`) or else the working folder name; `machine`, from `scutil --get ComputerName`, or `hostname -s` off macOS.
 - Always pass `thread_link`; the tool refuses a call without it. In a T3 session, read it and the thread title from `"$T3CODE_CLI_PATH" thread show --json "$T3CODE_THREAD_ID"`: `.thread.link` and `.thread.title`. Telegram replies reach the thread only through this link. Pass `none` only outside T3.
