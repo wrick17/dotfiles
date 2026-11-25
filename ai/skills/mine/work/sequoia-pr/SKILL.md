@@ -20,3 +20,11 @@ description: Hard requirements for every PR in a Sequoia repository (owner Sequo
 - Semgrep is optional. Do not report Semgrep failures or treat them as blockers to completion.
 - Sonar is mandatory. If Sonar fails, inspect the run logs and extract the Sonar dashboard status link, generally starting with `https://sonar-qa.sequoia-development.com/dashboard`. Give the user the link and wait for them to handle the issue in the dashboard and confirm it is resolved. Do not attempt to fix Sonar findings yourself. If the logs contain no dashboard link, report that along with the run link.
 - In T3 Code, use `watch_pull_request` when available and resume monitoring when notified. Follow the retry and Sonar rules on each update until every PR meets the completion condition above.
+
+## Thread title progress (T3 Code)
+
+- When a thread creates or monitors more than one PR, keep its title as a progress line so the sidebar shows status at a glance. Rename it with `t3_thread_update` (`action: "rename"`) on the thread that links the PRs.
+- Format: `<merged>/<total> ✓ · <ready> ○ · <error> ✕ · <short topic>`, for example `3/14 ✓ · 9 ○ · 1 ✕ · MFE upgrades`. Counts come first so truncation cuts the topic, not the numbers.
+- Stages: `✓` merged, out of all PRs the thread tracks. `○` ready to merge: required checks passed, required approvals in place, and no conflicts. `✕` error: a required check failed, a merge conflict, or anything that needs the user, such as Sonar. PRs still waiting on checks or review get no segment. Closed unmerged PRs leave the total.
+- Use only these plain-text symbols, never colour emoji. Omit a segment whose count is zero, except `✓`. Keep the topic to two or three words.
+- Rename after creating the PRs and on every monitoring update that changes a count. When all PRs are merged, the title is `<total>/<total> ✓ · <short topic>`.
