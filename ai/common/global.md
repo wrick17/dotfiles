@@ -82,8 +82,9 @@ Load the matching skill before the work it covers. These skills hold the full ru
 
 - When the `agent_notify` MCP server is connected, the main thread calls its `notify` tool. Sub-agents never call it.
 - Ping when the user must act outside the thread (a manual step, login, review, or decision) with kind `action`; when you wait on an answer to a question with `question`; when the whole task is done with `done`; when the task failed or is blocked with `failed`; and at important milestones with `milestone`. Never ping for routine progress.
-- `message` is one plain line naming the task and what happened or what is needed. Leave details in the thread.
-- In a T3 session, pass `thread_link`: the `link` field of `"$T3CODE_CLI_PATH" thread show --json "$T3CODE_THREAD_ID"`.
+- `message` is one plain line saying what happened or what is needed. Leave details in the thread.
+- Pass the context fields, which show on a second line: `task`, the T3 thread title or else a short task name; `project`, the repository name (basename of `git rev-parse --show-toplevel`) or else the working folder name; `machine`, from `scutil --get ComputerName`, or `hostname -s` off macOS.
+- In a T3 session, pass `thread_link`. Read it and the thread title from `"$T3CODE_CLI_PATH" thread show --json "$T3CODE_THREAD_ID"`: `.thread.link` and `.thread.title`.
 - A failed ping never blocks the work. Mention it in the reply and continue.
 
 ## Improve the workflow
