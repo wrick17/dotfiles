@@ -12,7 +12,7 @@ Use the live machine, current repositories, and installed Aggregator help as aut
 
 Discover the OS and architecture, sibling workspace root, fresh/setup/repair/startup scope, approved repositories and branches, available tools, dirty checkouts, `.boxrc`, and existing session/listeners. Prefer existing working tools. Do not print `.npmrc`, tokens, or dashboard connection files.
 
-Use `box` by default. Keep an explicit requested environment or saved `.boxrc` environment; use `integration` only when neither exists. Keep every enabled MFE in build mode until work requires its dev server. See [workspace-tooling.md](workspace-tooling.md) for the editing lifecycle.
+Use `box` by default. Keep an explicit requested environment or saved `.boxrc` environment; use `integration` only when neither exists. Follow [the Box lifecycle](workspace-tooling.md#stay-in-build-rebuild-to-test).
 
 Workspace commands run in the parent containing child projects, without a parent `package.json`. Aggregator v7 rejects project commands from inside an MFE. Help, version, and upgrade can run from any directory. Check current platform support; macOS is verified, while real Linux and Windows integration validation remains limited in the v7.1.0 documentation.
 
@@ -90,8 +90,6 @@ box
 Use `box --env stage` only when `stage` is requested; an explicit override wins over saved settings. Missing `.boxrc` is recreated by Box with all MFEs in build mode, none ignored, and Storybook off. Preserve existing selections and user work. `agg start` is deprecated and runs the full selected fleet in dev mode; use it only on explicit request.
 
 Wait for required MFEs to finish compiling and serving. The dashboard URL is separate from the application URL. Discover the application's proxy/host URL from current configuration or runner output and verify the composed application with the harness's preferred browser. Check initial load, direct refresh, console, failed network requests, and an owned route.
-
-If feature editing follows setup, switch only its owning MFEs to dev mode for HMR, then return them to build after verification. Setup alone needs no dev selection.
 
 ## 6. Troubleshoot from evidence
 

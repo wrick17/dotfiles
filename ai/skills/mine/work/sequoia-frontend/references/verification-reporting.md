@@ -12,16 +12,17 @@ From the owning repo:
 For composed UI work:
 
 - Use the current harness's preferred browser integration. Use the user's browser when explicitly requested and preserve their tabs.
-- Do not navigate to localhost until the dev server is fully up and every MFE has finished compiling.
+- Follow [the Box readiness gate](workspace-tooling.md#stay-in-build-rebuild-to-test) before navigating.
+- On the Box host `*.sequoia.staging.test`, `?FF_*=true|false` URL and cookie flag overrides are ignored; Adminshell allows them only on `sequoia-development.com`, `peopleloop-development.com`, and `localhost`. To test legacy navigation there, pin `window.__SEQUOIA_NAV_MODE__ = 'legacy'` with an init script that runs before boot.
 - Verify the real composed route, direct refresh, navigation, visible states, responsive layout, keyboard path, console, and relevant network requests.
 - When a visual source exists, compare the rendered page with it at the intended viewport. Check computed styles when token or layout fidelity is in question.
 - Do not substitute a standalone mock page for composed verification.
 
 Report completion only after the requested behavior works. State any backend, permission, data, or environment blocker separately from frontend fidelity.
 
-## Return the edited tasks to build mode
+## Finish the Box lifecycle
 
-After dev-mode browser verification, finish [the Box lifecycle](workspace-tooling.md#edit-with-hmr-then-return-to-build). Switch the MFEs and any Storybook adopted for this work back to build, wait for successful static build/server readiness, and check the composed route against the resulting output. Preserve unrelated session state and leave Box running unless stopping it was requested. Report any failed build or incomplete mode cleanup instead of declaring the workspace ready.
+Before reporting, complete step 6 of [the Box lifecycle](workspace-tooling.md#stay-in-build-rebuild-to-test). Leave Box running unless stopping it was requested. Report any failed build or incomplete mode cleanup instead of declaring the workspace ready.
 
 ## Generate a report when requested or required
 

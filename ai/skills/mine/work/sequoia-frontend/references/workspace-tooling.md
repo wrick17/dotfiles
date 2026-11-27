@@ -35,7 +35,7 @@ MCP discovers the running session automatically. Do not copy dashboard tokens or
 
 - `[repos]` selects **dev** tasks, not the complete fleet. Leave it empty for an all-build baseline.
 - `[ignore]` excludes repositories locally. Preserve intentional exclusions. Ignoring a repository does not add a CDN fallback; verify any required deployed remote through the MFE configuration.
-- `[storybook]` enables independent Storybook tasks. Add `folder:storybook` to `[repos]` only while editing that Storybook. Supported apps need `storybook`, `build-storybook`, and `preview-storybook` scripts.
+- `[storybook]` enables independent Storybook tasks. Add `folder:storybook` to `[repos]` only while actively iterating on that Storybook. Supported apps need `storybook`, `build-storybook`, and `preview-storybook` scripts.
 - `[config]` supports `env`, `jobs`, `hash-jobs`, `canary`, and `args`. Environment precedence is explicit CLI/MCP override, saved `env`, then `integration`. Keep the user's environment when attaching.
 
 Use exact local folder names. `agg init` uses `s1` for UWP with memorable names, but an existing workspace may use `uwp` or full repository names. Discover actual folders and task IDs rather than renaming them. Legacy flat `.boxrc` files migrate with a `.boxrc.legacy` backup; preserve the backup and review active selections.
@@ -44,26 +44,23 @@ For new settings, startup/build concurrency defaults to `jobs = 1`, cache checks
 
 Prefer `box_task` and `box_settings` to hand edits. They share the dashboard's validation, persistence, and conflict checks. Valid hand edits become pending changes; inspect them, then call `box_session_action` with `{"action":"applyConfig"}` or use Apply in the web dashboard / `A` in the terminal. Invalid edits remain unapplied. Adding repositories on disk requires a session restart for discovery.
 
-## Edit with HMR, then return to build
+## Stay in build, rebuild to test
 
-1. Identify every MFE the implementation will change. Record their task IDs and initial state from `box_status`. Preserve unrelated tasks, intentional ignores, and any dev tasks being used by someone else.
-2. For each target MFE, issue a mode change using its returned ID. This example assumes status returned `cloud:mfe`:
+Keep every task in build mode by default. Dev mode keeps the build tool running and burns CPU, so switch a repo to dev only while actively iterating on it (repeated edit-and-verify cycles) and switch it back to build as soon as that loop ends; never leave a repo idle in dev mode.
 
-```json
-{"taskId":"cloud:mfe","action":"mode","value":"dev"}
-```
-
-3. Switch multiple MFEs one at a time and wait for readiness. If a required target is ignored or paused, include/start it only within the task's scope and record that change. Change Adminshell's MFE mode to control its proxy. Change Storybook separately only when needed.
-4. Confirm the target is in dev mode, compilation finished, and the composed route loads before relying on HMR. Implement and verify the feature against that stack.
-5. After verification, return every MFE adopted for this task back to build, including one already in dev when work began, unless the user explicitly wants to keep it in dev. Do the same for any Storybook switched for the task:
+1. Identify every repo the work will change. Record their task IDs and initial state from `box_status`. Preserve unrelated tasks, intentional ignores, user exclusions, and other agents' tasks. If a required target is ignored or paused, include or start it only within the task's scope and record that change. Switch any idle repo or Storybook you take ownership of from dev to build before editing.
+2. Edit with the repo in build mode. When the edits are finished and testing is next, rebuild each changed repo once, using the task ID status returned. This example assumes `cloud:mfe`:
 
 ```json
-{"taskId":"cloud:mfe","action":"mode","value":"build"}
+{"taskId":"cloud:mfe","action":"rebuild"}
 ```
 
-6. Wait for the affected builds and static servers to be ready with no build failures. Verify the final composed route against the static output. Restore task-specific temporary inclusion changes without disturbing the user's exclusions. Report the final modes and any failed cleanup or build as an unresolved limitation.
+3. Poll `box_status` sparingly until each rebuilt task is ready with 0 errors and the other tasks needed by the composed route are serving. Then test. During that test cycle, rebuild again only after further code changes. A newly added Module Federation expose is served only after its task restarts or rebuilds.
+4. In multi-agent work, only the agent that owns a repo rebuilds it, such as the single Adminshell writer. A concurrent Adminshell rebuild can cause transient 502s on another agent's page load.
+5. For an active iteration loop, switch that repo with `{"taskId":"cloud:mfe","action":"mode","value":"dev"}`, confirm compilation finished and the composed route loads, then iterate. When the loop ends, send the same request with `"value":"build"` and wait for the build and static server to be ready with no failures. Change Adminshell's MFE mode to control its proxy; change Storybook separately only when needed.
+6. Before reporting, return every repo and Storybook you took ownership of that is still in dev to build, including tasks already in dev at startup. Wait for the static output to be ready and verify the composed route against it if it has not already been verified. Then restore temporary inclusion changes. Report the final modes and any build or cleanup failure.
 
-Run cleanup on cancellation or a failed implementation too, when the session is reachable. If interrupted before cleanup, record the workspace, session ID, and affected task IDs for the next turn. Never claim cleanup succeeded based only on sending a mode request.
+Run cleanup on cancellation or a failed implementation too, when the session is reachable. If interrupted before cleanup, record the workspace, session ID, and affected task IDs for the next turn. Confirm every mode change and rebuild through `box_status`; a sent request proves only that it was accepted.
 
 ## Choose the smallest control
 

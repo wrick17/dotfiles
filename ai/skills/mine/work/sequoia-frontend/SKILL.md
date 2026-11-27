@@ -1,6 +1,6 @@
 ---
 name: sequoia-frontend
-description: Set up, run, troubleshoot, and implement features in Sequoia's composed micro-frontend workspace. Use for machine and package access setup, fresh workspaces with agg init, Box dashboard and .boxrc control through MCP, build/dev mode changes for HMR, startup diagnosis, or routes, pages, components, forms, and flows from product requirements and design or API sources.
+description: Set up, run, troubleshoot, and implement features in Sequoia's composed micro-frontend workspace. Use for machine and package access setup, fresh workspaces with agg init, Box dashboard and .boxrc control through MCP, task rebuilds and build/dev mode changes, startup diagnosis, or routes, pages, components, forms, and flows from product requirements and design or API sources.
 ---
 
 # Sequoia Frontend
@@ -19,9 +19,9 @@ Read all applicable layers before changing files. Reconcile compatible instructi
 
 ## Box development lifecycle
 
-Use Aggregator v7 and `box` by default. All enabled MFEs run in **build mode** unless they are being actively edited. Before editing one or several MFEs, switch only those tasks to **dev mode** for HMR. After implementation and browser verification, return every MFE edited for this task to **build mode** and verify the updated static builds are ready before reporting completion.
+Use Aggregator v7 and `box` by default.
 
-Read [workspace-tooling.md](references/workspace-tooling.md) before starting or changing a session, including during feature work. Prefer the Box MCP tools from Aggregator 7.1.0 or later. Discover the session with `box_status`, reuse the intended workspace, and preserve unrelated tasks and existing user work. The Adminshell proxy follows its MFE; Storybook has its own mode.
+Read [workspace-tooling.md](references/workspace-tooling.md) before starting or changing a session or any task's mode, including during feature work. Prefer the Box MCP tools from Aggregator 7.1.0 or later. Discover the session with `box_status`, reuse the intended workspace, and preserve unrelated tasks and existing user work. The Adminshell proxy follows its MFE; Storybook has its own mode.
 
 Whenever Aggregator is present, including after installing it, ensure its stdio MCP server is registered as **`box`** in every detected installed harness's persistent configuration. Follow [agent-tooling.md](references/agent-tooling.md#box-mcp), install missing registrations, preserve other servers, and verify available connections. This setup is part of the skill; do not defer it to an optional recommendation. Use the dashboard while MCP is unavailable. `agg start` is deprecated and requires an explicit request for the full dev stack.
 

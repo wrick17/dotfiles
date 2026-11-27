@@ -1,6 +1,6 @@
 ---
 name: browser-work
-description: Rules for any browser work, including research on public pages, Postplan checks, and work in the user's own Chrome. Use before opening, navigating, or inspecting any web page.
+description: Rules for any browser work, including research on public pages, Postplan checks, and work in the user's own browser (Helium or Chrome). Use before opening, navigating, or inspecting any web page.
 ---
 
 # Browser work
@@ -12,12 +12,20 @@ description: Rules for any browser work, including research on public pages, Pos
 
 ## The user's browser
 
+- Helium is the user's browser unless they name Chrome. Ask the user to authenticate when needed.
+
+### Helium
+
+- Drive Helium through the `devtools` MCP.
+- For testing in Helium, read [the Helium test-tab workflow](references/helium.md) before setup or browser calls.
+
+### Chrome
+
 - Use Browser MCP by Wrick, `@wrick17/browser-mcp@1.26.1`, only for tab management. Do not use the upstream Agent360 package or a repo-local server.
-- At the start of user-browser work, create a dedicated task group with `browser_set_tab_group_name`.
+- At the start of Chrome work, create a dedicated task group with `browser_set_tab_group_name`.
 - Open agent tabs in that group using `browser_navigate` with `new_tab: true`, preferably in the background. Reuse them and keep the tab count low.
 - Never use Browser MCP to navigate an existing tab or interact with page content.
-- Use `chrome-devtools-mcp` with existing Chrome for all page interaction and inspection in the user's browser.
+- Use a `chrome-devtools-mcp` server attached to the existing Chrome for all page interaction and inspection. The `devtools` server drives Helium; if no server reaches Chrome, report the limitation.
 - For page-scoped DevTools calls, use the assigned `pageId` and select it with `bringToFront: false`.
 - Never operate both MCPs on the same tab concurrently.
-- Ask the user to authenticate when needed.
-- Before finishing user-browser work, close agent-created tabs and verify the task group is gone. Preserve the user's tabs and any task tabs they explicitly ask to keep.
+- Before finishing Chrome work, close agent-created tabs and verify the task group is gone. Preserve the user's tabs and any task tabs they explicitly ask to keep.
