@@ -19,6 +19,7 @@ description: Rules for any browser work, including research on public pages, Pos
 - When a login, 2FA, captcha, or other person-only step appears, call `handoff` and wait for the user.
 - At the start of the task, pick a slug unique to this task, such as the ticket ID plus a short random suffix. Use it as `group` for every agent tab.
 - Open each agent tab with `navigate` without a `tab`, passing the `group`. Record the numeric tab id it returns and pass it as `tab` on every later call. Reuse tabs and keep the count low.
+- Send a tab id to `execute` as a JSON number. browse reads a string `tab` as a chosen slug and rejects digits ("tab ids you choose are lowercase slugs"). When the id arrives as a string anyway, call `execute` without `tab` and pass the number inside the script, such as `browse.eval({tab: 1355931037, expression: "location.href"})`.
 - If opening a tab returns its id with a navigation-timeout warning and the tab is still on `about:blank`, navigate that same tab id once more. If that also fails, stop and report it. In browse 0.1.5 on Helium, the first navigation of a new tab can time out. Drop this retry once a Helium smoke test opens a new tab and loads a page on the first try.
 - Use only tabs you opened or tabs the user lent you. Leave all other tabs alone.
 - Before finishing, close the tab ids you recorded with `tabs` action `close`, passing the ids as `tabs`, skipping any tab the user explicitly asked to keep. Confirm with `tabs` list that they are gone.
