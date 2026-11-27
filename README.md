@@ -241,7 +241,7 @@ git clone git@github.com:mattpocock/skills.git "$HOME/dotfiles/ai/skills/third-p
 git clone https://github.com/tt-a1i/archify.git "$HOME/dotfiles/ai/skills/third-party/.sources/archify"
 ```
 
-Claude Code's user-scoped MCP servers live in each explicit config directory's `.claude.json`, or the legacy `~/.claude.json` for implicit launches. These files remain separate from the account's instruction and skill snapshots. This machine configures `homeassistant`, `browser-mcp`, `devtools`, `t3-code`, and `openai-api-key-local-confirmation`. Vercel already connects through Claude's own connector at the same endpoint. The confirmation server uses the installed OpenAI Developers plugin's script, so update its absolute path after a plugin version change. Codex app runtimes, computer use, Codex Security, disabled servers, and ChatGPT-only connector transports are not copied. T3 also injects its own thread-scoped tools when it launches Claude.
+Claude Code's user-scoped MCP servers live in each explicit config directory's `.claude.json`, or the legacy `~/.claude.json` for implicit launches. These files remain separate from the account's instruction and skill snapshots. This machine configures `homeassistant`, `browse`, `t3-code`, and `openai-api-key-local-confirmation`. Vercel already connects through Claude's own connector at the same endpoint. The confirmation server uses the installed OpenAI Developers plugin's script, so update its absolute path after a plugin version change. Codex app runtimes, computer use, Codex Security, disabled servers, and ChatGPT-only connector transports are not copied. T3 also injects its own thread-scoped tools when it launches Claude.
 
 Every Claude account and Codex install, work and personal, needs the `agent_memory` server, because the shared rules make Agent Memory the primary memory. The provisioning helper does not manage MCP config, so add it once per Claude account directory and once for Codex, then sign in:
 
@@ -261,6 +261,17 @@ claude mcp login agent_notify   # or /mcp inside that account
 codex mcp add agent_notify --url https://notify.wrick17.com/mcp
 codex mcp login agent_notify
 ```
+
+The `browse` server drives the user's Helium or Chrome through the browse extension. Install it once per machine, then pair the extension in each browser:
+
+```sh
+curl -fsSL https://opencode.ai/browse/install | bash
+browse pair   # run once for each browser that needs browse
+```
+
+`browse pair` prints a one-time code. Open that browser's browse extension **Options**, enter the code under **Pair with a code**, and click **Connect**.
+
+To add browse to an existing install, run `browse install -a claude codex`. It writes to the `.claude.json` of the current `CLAUDE_CONFIG_DIR`, so run it once per Claude account directory with `CLAUDE_CONFIG_DIR` set. browse needs no remote-debugging port, so Helium's **Allow remote debugging** setting at `helium://inspect/#remote-debugging` can stay off.
 
 BothQ (`bothq`) stays a read-only legacy archive; no rule writes to it.
 

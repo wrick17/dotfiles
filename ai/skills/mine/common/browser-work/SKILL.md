@@ -12,20 +12,22 @@ description: Rules for any browser work, including research on public pages, Pos
 
 ## The user's browser
 
-- Helium is the user's browser unless they name Chrome. Ask the user to authenticate when needed.
+- Helium is the user's browser unless they name Chrome.
+- Drive the user's browser through the `browse` MCP. Claude Code and Codex get three tools: `execute`, `status`, and `tabs`. Call every other browse tool, such as `navigate`, `eval`, `screenshot`, and `handoff`, as `browse.<tool>()` inside `execute` (OpenCode exposes them as plain tools).
+- Run `status` first and find the wanted browser in `extension.browsers`. If it is missing or its `connected` is false, ask the user to open that browser profile and enable or pair the browse extension, then wait. `nextStep` can be empty in that state.
+- When more than one browser is connected, pass the wanted browser's id as `browser` whenever you open a tab.
+- When a login, 2FA, captcha, or other person-only step appears, call `handoff` and wait for the user.
+- At the start of the task, pick a slug unique to this task, such as the ticket ID plus a short random suffix. Use it as `group` for every agent tab.
+- Open each agent tab with `navigate` without a `tab`, passing the `group`. Record the numeric tab id it returns and pass it as `tab` on every later call. Reuse tabs and keep the count low.
+- If opening a tab returns its id with a navigation-timeout warning and the tab is still on `about:blank`, navigate that same tab id once more. If that also fails, stop and report it. In browse 0.1.5 on Helium, the first navigation of a new tab can time out. Drop this retry once a Helium smoke test opens a new tab and loads a page on the first try.
+- Use only tabs you opened or tabs the user lent you. Leave all other tabs alone.
+- Before finishing, close the tab ids you recorded with `tabs` action `close`, passing the ids as `tabs`, skipping any tab the user explicitly asked to keep. Confirm with `tabs` list that they are gone.
 
 ### Helium
 
-- Drive Helium through the `devtools` MCP.
+- On the work machine, Helium is paired with browse as `office-helium`. Elsewhere, read its id from `status`.
 - For testing in Helium, read [the Helium test-tab workflow](references/helium.md) before setup or browser calls.
 
 ### Chrome
 
-- Use Browser MCP by Wrick, `@wrick17/browser-mcp@1.26.1`, only for tab management. Do not use the upstream Agent360 package or a repo-local server.
-- At the start of Chrome work, create a dedicated task group with `browser_set_tab_group_name`.
-- Open agent tabs in that group using `browser_navigate` with `new_tab: true`, preferably in the background. Reuse them and keep the tab count low.
-- Never use Browser MCP to navigate an existing tab or interact with page content.
-- Use a `chrome-devtools-mcp` server attached to the existing Chrome for all page interaction and inspection. The `devtools` server drives Helium; if no server reaches Chrome, report the limitation.
-- For page-scoped DevTools calls, use the assigned `pageId` and select it with `bringToFront: false`.
-- Never operate both MCPs on the same tab concurrently.
-- Before finishing Chrome work, close agent-created tabs and verify the task group is gone. Preserve the user's tabs and any task tabs they explicitly ask to keep.
+- browse reaches Chrome only after its extension is installed and paired in Chrome. If `status` lists no connected Chrome browser, ask the user to install the extension in Chrome and pair it with `browse pair`. Do not fall back to Helium.

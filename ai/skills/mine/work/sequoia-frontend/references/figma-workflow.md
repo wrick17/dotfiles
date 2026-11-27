@@ -42,4 +42,4 @@ Verify at the Figma viewport first, then at a narrow and wider viewport:
 - keyboard navigation, accessible names, focus visibility, and dialog behavior;
 - dark/high-contrast/theme variants supported by the target product.
 
-Use the attached DevTools browser, reuse the current tab, and compare the rendered screenshot to Figma. Inspect computed styles for disagreements instead of compensating with unverified arbitrary values.
+Use the browser that the `browser-work` skill selects, which is the T3 browser unless the user asks for their own. Reuse the task's tab and compare the rendered screenshot to Figma. Inspect computed styles with `getComputedStyle` for disagreements, through `preview_evaluate` in the T3 browser or `browse.eval` inside `execute` in the user's browser, instead of compensating with unverified arbitrary values.

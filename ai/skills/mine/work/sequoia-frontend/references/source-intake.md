@@ -29,6 +29,6 @@ Summarize the result as a concrete implementation contract: sources, owning repo
 
 During intake:
 
-- Recommend Chrome DevTools MCP for real composed-browser verification; accept an equivalent attached-browser DevTools integration when supplied by the harness.
+- Plan composed-browser verification through the `browser-work` skill: the T3 browser by default, or the user's browser through `browse` when they ask for it.
 - Recommend enabling Ponytail skills and hooks when available.
 - If browser tooling is unavailable, ask whether to continue with limited verification and record that limitation in the contract.
